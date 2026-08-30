@@ -1,0 +1,303 @@
+{
+  "run_name": "test_v1",
+  "dataset": "retrieval_test.jsonl",
+  "dataset_questions": 500,
+  "dataset_categories": {
+    "exact_term": 120,
+    "semantic_paraphrase": 150,
+    "version_conflict": 50,
+    "parent_context": 70,
+    "numeric_table": 80,
+    "rewrite_needed": 30
+  },
+  "collection": "enterprise_benchmark_v1",
+  "k": 5,
+  "candidate_k": 24,
+  "models": {
+    "embedding": "BAAI/bge-m3",
+    "reranker": "BAAI/bge-reranker-v2-m3"
+  },
+  "embedding_total_ms_this_run": 22406.581,
+  "completed_at": "2026-08-27T10:51:20.762228+08:00",
+  "results": {
+    "dense": {
+      "questions": 500,
+      "errors": 0,
+      "mean_embedding_latency_ms": 44.813,
+      "mean_retrieval_latency_ms": 4.765,
+      "p95_retrieval_latency_ms": 5.963,
+      "hit_rate": 0.64,
+      "hit_rate_95ci": [
+        0.596,
+        0.684
+      ],
+      "recall": 0.638,
+      "recall_95ci": [
+        0.593,
+        0.681
+      ],
+      "mrr": 0.4886,
+      "mrr_95ci": [
+        0.4474,
+        0.5254
+      ],
+      "ndcg": 0.5247,
+      "ndcg_95ci": [
+        0.4861,
+        0.5657
+      ],
+      "parent_hit_rate": 0.678,
+      "parent_hit_rate_95ci": [
+        0.638,
+        0.722
+      ],
+      "parent_recall": 0.677,
+      "parent_recall_95ci": [
+        0.636,
+        0.715
+      ],
+      "by_category": {
+        "exact_term": {
+          "questions": 120,
+          "hit_rate": 0.4583,
+          "recall": 0.4542,
+          "mrr": 0.3958,
+          "ndcg": 0.4102,
+          "parent_hit_rate": 0.4583,
+          "parent_recall": 0.4583
+        },
+        "numeric_table": {
+          "questions": 80,
+          "hit_rate": 0.5625,
+          "recall": 0.5625,
+          "mrr": 0.4567,
+          "ndcg": 0.483,
+          "parent_hit_rate": 0.65,
+          "parent_recall": 0.65
+        },
+        "parent_context": {
+          "questions": 70,
+          "hit_rate": 0.5143,
+          "recall": 0.5143,
+          "mrr": 0.3755,
+          "ndcg": 0.4088,
+          "parent_hit_rate": 0.6571,
+          "parent_recall": 0.6571
+        },
+        "rewrite_needed": {
+          "questions": 30,
+          "hit_rate": 0.8,
+          "recall": 0.7833,
+          "mrr": 0.6761,
+          "ndcg": 0.696,
+          "parent_hit_rate": 0.8,
+          "parent_recall": 0.7833
+        },
+        "semantic_paraphrase": {
+          "questions": 150,
+          "hit_rate": 0.76,
+          "recall": 0.76,
+          "mrr": 0.5471,
+          "ndcg": 0.599,
+          "parent_hit_rate": 0.7667,
+          "parent_recall": 0.7667
+        },
+        "version_conflict": {
+          "questions": 50,
+          "hit_rate": 0.92,
+          "recall": 0.92,
+          "mrr": 0.6323,
+          "ndcg": 0.7034,
+          "parent_hit_rate": 0.94,
+          "parent_recall": 0.94
+        }
+      }
+    },
+    "hybrid": {
+      "questions": 500,
+      "errors": 0,
+      "mean_embedding_latency_ms": 44.813,
+      "mean_retrieval_latency_ms": 5.264,
+      "p95_retrieval_latency_ms": 6.957,
+      "hit_rate": 0.79,
+      "hit_rate_95ci": [
+        0.754,
+        0.824
+      ],
+      "recall": 0.786,
+      "recall_95ci": [
+        0.75,
+        0.819
+      ],
+      "mrr": 0.5948,
+      "mrr_95ci": [
+        0.5589,
+        0.6329
+      ],
+      "ndcg": 0.6401,
+      "ndcg_95ci": [
+        0.6015,
+        0.6738
+      ],
+      "parent_hit_rate": 0.828,
+      "parent_hit_rate_95ci": [
+        0.792,
+        0.862
+      ],
+      "parent_recall": 0.827,
+      "parent_recall_95ci": [
+        0.793,
+        0.859
+      ],
+      "by_category": {
+        "exact_term": {
+          "questions": 120,
+          "hit_rate": 0.5,
+          "recall": 0.4875,
+          "mrr": 0.4833,
+          "ndcg": 0.4804,
+          "parent_hit_rate": 0.5417,
+          "parent_recall": 0.5417
+        },
+        "numeric_table": {
+          "questions": 80,
+          "hit_rate": 0.775,
+          "recall": 0.775,
+          "mrr": 0.5046,
+          "ndcg": 0.5703,
+          "parent_hit_rate": 0.85,
+          "parent_recall": 0.85
+        },
+        "parent_context": {
+          "questions": 70,
+          "hit_rate": 0.8143,
+          "recall": 0.8143,
+          "mrr": 0.5019,
+          "ndcg": 0.5788,
+          "parent_hit_rate": 0.9143,
+          "parent_recall": 0.9143
+        },
+        "rewrite_needed": {
+          "questions": 30,
+          "hit_rate": 1.0,
+          "recall": 0.9833,
+          "mrr": 0.8594,
+          "ndcg": 0.8765,
+          "parent_hit_rate": 1.0,
+          "parent_recall": 0.9833
+        },
+        "semantic_paraphrase": {
+          "questions": 150,
+          "hit_rate": 0.9133,
+          "recall": 0.9133,
+          "mrr": 0.6886,
+          "ndcg": 0.7438,
+          "parent_hit_rate": 0.92,
+          "parent_recall": 0.92
+        },
+        "version_conflict": {
+          "questions": 50,
+          "hit_rate": 0.98,
+          "recall": 0.98,
+          "mrr": 0.6967,
+          "ndcg": 0.7685,
+          "parent_hit_rate": 0.98,
+          "parent_recall": 0.98
+        }
+      }
+    },
+    "hybrid_rerank": {
+      "questions": 500,
+      "errors": 0,
+      "mean_embedding_latency_ms": 44.813,
+      "mean_retrieval_latency_ms": 674.006,
+      "p95_retrieval_latency_ms": 1876.609,
+      "hit_rate": 0.976,
+      "hit_rate_95ci": [
+        0.962,
+        0.988
+      ],
+      "recall": 0.975,
+      "recall_95ci": [
+        0.962,
+        0.988
+      ],
+      "mrr": 0.9141,
+      "mrr_95ci": [
+        0.8937,
+        0.9345
+      ],
+      "ndcg": 0.9297,
+      "ndcg_95ci": [
+        0.9123,
+        0.9473
+      ],
+      "parent_hit_rate": 0.976,
+      "parent_hit_rate_95ci": [
+        0.962,
+        0.988
+      ],
+      "parent_recall": 0.975,
+      "parent_recall_95ci": [
+        0.96,
+        0.988
+      ],
+      "by_category": {
+        "exact_term": {
+          "questions": 120,
+          "hit_rate": 0.925,
+          "recall": 0.925,
+          "mrr": 0.8912,
+          "ndcg": 0.8998,
+          "parent_hit_rate": 0.925,
+          "parent_recall": 0.925
+        },
+        "numeric_table": {
+          "questions": 80,
+          "hit_rate": 1.0,
+          "recall": 1.0,
+          "mrr": 0.9417,
+          "ndcg": 0.9568,
+          "parent_hit_rate": 1.0,
+          "parent_recall": 1.0
+        },
+        "parent_context": {
+          "questions": 70,
+          "hit_rate": 1.0,
+          "recall": 1.0,
+          "mrr": 0.8107,
+          "ndcg": 0.859,
+          "parent_hit_rate": 1.0,
+          "parent_recall": 1.0
+        },
+        "rewrite_needed": {
+          "questions": 30,
+          "hit_rate": 0.9,
+          "recall": 0.8833,
+          "mrr": 0.8444,
+          "ndcg": 0.855,
+          "parent_hit_rate": 0.9,
+          "parent_recall": 0.8833
+        },
+        "semantic_paraphrase": {
+          "questions": 150,
+          "hit_rate": 1.0,
+          "recall": 1.0,
+          "mrr": 0.9756,
+          "ndcg": 0.9819,
+          "parent_hit_rate": 1.0,
+          "parent_recall": 1.0
+        },
+        "version_conflict": {
+          "questions": 50,
+          "hit_rate": 1.0,
+          "recall": 1.0,
+          "mrr": 0.9267,
+          "ndcg": 0.9457,
+          "parent_hit_rate": 1.0,
+          "parent_recall": 1.0
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "valid": true,
+  "linked": true,
+  "documents": 50,
+  "formats": {
+    ".md": 10,
+    ".docx": 10,
+    ".pdf": 10,
+    ".xlsx": 10,
+    ".txt": 10
+  },
+  "facts": 1000,
+  "retrieval_dev": 100,
+  "retrieval_test": 500,
+  "grounding_test": 200,
+  "grounding_answerable": 100,
+  "grounding_unanswerable": 100,
+  "dev_categories": {
+    "semantic_paraphrase": 30,
+    "parent_context": 14,
+    "exact_term": 24,
+    "rewrite_needed": 6,
+    "numeric_table": 16,
+    "version_conflict": 10
+  },
+  "test_categories": {
+    "exact_term": 120,
+    "semantic_paraphrase": 150,
+    "version_conflict": 50,
+    "parent_context": 70,
+    "numeric_table": 80,
+    "rewrite_needed": 30
+  },
+  "parsed_units": 540,
+  "parsed_characters": 109260
+}

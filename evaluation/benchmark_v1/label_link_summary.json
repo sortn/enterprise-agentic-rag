@@ -1,0 +1,8 @@
+{
+  "collection": "enterprise_benchmark_v1",
+  "chunks": 570,
+  "facts": 1000,
+  "missing_facts": 0,
+  "mean_relevant_children_per_fact": 1.033,
+  "mean_relevant_parents_per_fact": 1.002
+}

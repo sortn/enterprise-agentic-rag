@@ -1,0 +1,420 @@
+{
+  "collection": "enterprise_benchmark_v1",
+  "created_at": "2026-08-27T10:37:17.908226+08:00",
+  "models": {
+    "embedding": "BAAI/bge-m3",
+    "reranker": "BAAI/bge-reranker-v2-m3"
+  },
+  "chunking": {
+    "parent_chunk_size": 1800,
+    "child_chunk_size": 700,
+    "child_chunk_overlap": 120
+  },
+  "requested_documents": 50,
+  "indexed_documents": 50,
+  "indexed_chunks_this_run": 570,
+  "failures": 0,
+  "elapsed_seconds": 536.721,
+  "results": [
+    {
+      "doc_id": "9ae50f02c093ef2871cd7447",
+      "source": "001_HR_总部_员工考勤与发展管理办法.md",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 3.162,
+      "error": ""
+    },
+    {
+      "doc_id": "de4b3b797558e45d254fe70a",
+      "source": "002_HR_华东区_员工考勤与发展管理办法.docx",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 11.886,
+      "error": ""
+    },
+    {
+      "doc_id": "bd4253613a7702ee541cc414",
+      "source": "003_HR_华南区_员工考勤与发展管理办法.pdf",
+      "chunks": 5,
+      "status": "indexed",
+      "elapsed_seconds": 11.976,
+      "error": ""
+    },
+    {
+      "doc_id": "fd408842fd9176af3c2aaf96",
+      "source": "004_HR_西南区_员工考勤与发展管理办法.xlsx",
+      "chunks": 6,
+      "status": "indexed",
+      "elapsed_seconds": 11.943,
+      "error": ""
+    },
+    {
+      "doc_id": "22cbc8026bfbb6939401d69b",
+      "source": "005_HR_北方区_员工考勤与发展管理办法.txt",
+      "chunks": 4,
+      "status": "indexed",
+      "elapsed_seconds": 11.976,
+      "error": ""
+    },
+    {
+      "doc_id": "a9c7928da12bcfa098148e8e",
+      "source": "006_FIN_总部_费用报销与预算控制制度.md",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 9.322,
+      "error": ""
+    },
+    {
+      "doc_id": "b1b4d43a3c83f0781f0cff41",
+      "source": "007_FIN_华东区_费用报销与预算控制制度.docx",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 9.965,
+      "error": ""
+    },
+    {
+      "doc_id": "4e5ab2db542cf13781549ae0",
+      "source": "008_FIN_华南区_费用报销与预算控制制度.pdf",
+      "chunks": 5,
+      "status": "indexed",
+      "elapsed_seconds": 11.433,
+      "error": ""
+    },
+    {
+      "doc_id": "f57bdc88e593836da8329916",
+      "source": "009_FIN_西南区_费用报销与预算控制制度.xlsx",
+      "chunks": 6,
+      "status": "indexed",
+      "elapsed_seconds": 9.005,
+      "error": ""
+    },
+    {
+      "doc_id": "e97511d797542329ef50ec30",
+      "source": "010_FIN_北方区_费用报销与预算控制制度.txt",
+      "chunks": 4,
+      "status": "indexed",
+      "elapsed_seconds": 12.493,
+      "error": ""
+    },
+    {
+      "doc_id": "9633a96a53918a21955863e6",
+      "source": "011_SEC_总部_账号数据与安全事件制度.md",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 9.15,
+      "error": ""
+    },
+    {
+      "doc_id": "40e02dfcca5908964a93bdfc",
+      "source": "012_SEC_华东区_账号数据与安全事件制度.docx",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 10.07,
+      "error": ""
+    },
+    {
+      "doc_id": "9fb15455957ca10b18b5bbd2",
+      "source": "013_SEC_华南区_账号数据与安全事件制度.pdf",
+      "chunks": 5,
+      "status": "indexed",
+      "elapsed_seconds": 11.928,
+      "error": ""
+    },
+    {
+      "doc_id": "bfea1acbbc9fc683c785b1a7",
+      "source": "014_SEC_西南区_账号数据与安全事件制度.xlsx",
+      "chunks": 6,
+      "status": "indexed",
+      "elapsed_seconds": 11.969,
+      "error": ""
+    },
+    {
+      "doc_id": "073a90cb4e55daa3568ac00f",
+      "source": "015_SEC_北方区_账号数据与安全事件制度.txt",
+      "chunks": 4,
+      "status": "indexed",
+      "elapsed_seconds": 9.51,
+      "error": ""
+    },
+    {
+      "doc_id": "6af557e9144532229216ba1a",
+      "source": "016_PROC_总部_供应商与采购执行规范.md",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 12.407,
+      "error": ""
+    },
+    {
+      "doc_id": "5a9e79dcb1c21439701b88b4",
+      "source": "017_PROC_华东区_供应商与采购执行规范.docx",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 9.273,
+      "error": ""
+    },
+    {
+      "doc_id": "0a1e0eb4e0971b9ccadd432d",
+      "source": "018_PROC_华南区_供应商与采购执行规范.pdf",
+      "chunks": 5,
+      "status": "indexed",
+      "elapsed_seconds": 12.288,
+      "error": ""
+    },
+    {
+      "doc_id": "747d5597665df741b0f8b04d",
+      "source": "019_PROC_西南区_供应商与采购执行规范.xlsx",
+      "chunks": 6,
+      "status": "indexed",
+      "elapsed_seconds": 9.045,
+      "error": ""
+    },
+    {
+      "doc_id": "616fb48704b196a60f72cd6f",
+      "source": "020_PROC_北方区_供应商与采购执行规范.txt",
+      "chunks": 4,
+      "status": "indexed",
+      "elapsed_seconds": 11.948,
+      "error": ""
+    },
+    {
+      "doc_id": "638dc6aa3aa18dfe885c0701",
+      "source": "021_OPS_总部_信息系统运行维护手册.md",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 9.192,
+      "error": ""
+    },
+    {
+      "doc_id": "dee653ef51c0004ba19eed26",
+      "source": "022_OPS_华东区_信息系统运行维护手册.docx",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 12.243,
+      "error": ""
+    },
+    {
+      "doc_id": "a7e3a02c2ff6e9d7553b28c9",
+      "source": "023_OPS_华南区_信息系统运行维护手册.pdf",
+      "chunks": 5,
+      "status": "indexed",
+      "elapsed_seconds": 9.235,
+      "error": ""
+    },
+    {
+      "doc_id": "fb6f3cb237c495c03c77fd06",
+      "source": "024_OPS_西南区_信息系统运行维护手册.xlsx",
+      "chunks": 6,
+      "status": "indexed",
+      "elapsed_seconds": 11.939,
+      "error": ""
+    },
+    {
+      "doc_id": "26949b546e541e45e2d0cda6",
+      "source": "025_OPS_北方区_信息系统运行维护手册.txt",
+      "chunks": 4,
+      "status": "indexed",
+      "elapsed_seconds": 9.211,
+      "error": ""
+    },
+    {
+      "doc_id": "74c41bc2fb0308bbb0710825",
+      "source": "026_PROD_总部_企业终端产品配置手册.md",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 12.175,
+      "error": ""
+    },
+    {
+      "doc_id": "3cab68e3657246d85973ef00",
+      "source": "027_PROD_华东区_企业终端产品配置手册.docx",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 9.849,
+      "error": ""
+    },
+    {
+      "doc_id": "c0b63e9d1457282f147ccfc9",
+      "source": "028_PROD_华南区_企业终端产品配置手册.pdf",
+      "chunks": 5,
+      "status": "indexed",
+      "elapsed_seconds": 18.027,
+      "error": ""
+    },
+    {
+      "doc_id": "d4f5ac6154b1a64027028965",
+      "source": "029_PROD_西南区_企业终端产品配置手册.xlsx",
+      "chunks": 6,
+      "status": "indexed",
+      "elapsed_seconds": 3.497,
+      "error": ""
+    },
+    {
+      "doc_id": "cc3095b2c35647379a3af4ed",
+      "source": "030_PROD_北方区_企业终端产品配置手册.txt",
+      "chunks": 4,
+      "status": "indexed",
+      "elapsed_seconds": 12.103,
+      "error": ""
+    },
+    {
+      "doc_id": "514e0684d2ea17e03ce63e0f",
+      "source": "031_CS_总部_客户服务与工单响应标准.md",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 9.728,
+      "error": ""
+    },
+    {
+      "doc_id": "39744c8204ae310e39139022",
+      "source": "032_CS_华东区_客户服务与工单响应标准.docx",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 17.219,
+      "error": ""
+    },
+    {
+      "doc_id": "aa011772d45d34816318858e",
+      "source": "033_CS_华南区_客户服务与工单响应标准.pdf",
+      "chunks": 5,
+      "status": "indexed",
+      "elapsed_seconds": 5.973,
+      "error": ""
+    },
+    {
+      "doc_id": "1a1664cc842b3a44a07f7756",
+      "source": "034_CS_西南区_客户服务与工单响应标准.xlsx",
+      "chunks": 6,
+      "status": "indexed",
+      "elapsed_seconds": 9.085,
+      "error": ""
+    },
+    {
+      "doc_id": "90cc326dd7e5b585858d0fa8",
+      "source": "035_CS_北方区_客户服务与工单响应标准.txt",
+      "chunks": 4,
+      "status": "indexed",
+      "elapsed_seconds": 11.887,
+      "error": ""
+    },
+    {
+      "doc_id": "798950ba32fdafb3cbe7c3f1",
+      "source": "036_LEGAL_总部_合同审查与合规管理制度.md",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 9.983,
+      "error": ""
+    },
+    {
+      "doc_id": "3ddf2cd6a81a4754f3eb1188",
+      "source": "037_LEGAL_华东区_合同审查与合规管理制度.docx",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 9.341,
+      "error": ""
+    },
+    {
+      "doc_id": "b3096af6d180c5a2321de135",
+      "source": "038_LEGAL_华南区_合同审查与合规管理制度.pdf",
+      "chunks": 5,
+      "status": "indexed",
+      "elapsed_seconds": 12.558,
+      "error": ""
+    },
+    {
+      "doc_id": "d1a286dda1e35d105181693b",
+      "source": "039_LEGAL_西南区_合同审查与合规管理制度.xlsx",
+      "chunks": 6,
+      "status": "indexed",
+      "elapsed_seconds": 11.013,
+      "error": ""
+    },
+    {
+      "doc_id": "919550826d5a19cb3cd7d28f",
+      "source": "040_LEGAL_北方区_合同审查与合规管理制度.txt",
+      "chunks": 4,
+      "status": "indexed",
+      "elapsed_seconds": 9.108,
+      "error": ""
+    },
+    {
+      "doc_id": "09a4ad0bed481d301f19b09a",
+      "source": "041_LOG_总部_仓储配送与库存管理规范.md",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 9.835,
+      "error": ""
+    },
+    {
+      "doc_id": "3e06713d668d8835b9461102",
+      "source": "042_LOG_华东区_仓储配送与库存管理规范.docx",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 9.235,
+      "error": ""
+    },
+    {
+      "doc_id": "e68c4c709f07085778f40945",
+      "source": "043_LOG_华南区_仓储配送与库存管理规范.pdf",
+      "chunks": 5,
+      "status": "indexed",
+      "elapsed_seconds": 12.261,
+      "error": ""
+    },
+    {
+      "doc_id": "964d98905cc82b0eb2ad1b56",
+      "source": "044_LOG_西南区_仓储配送与库存管理规范.xlsx",
+      "chunks": 6,
+      "status": "indexed",
+      "elapsed_seconds": 11.966,
+      "error": ""
+    },
+    {
+      "doc_id": "bdb8e5a208b7e91c34e85198",
+      "source": "045_LOG_北方区_仓储配送与库存管理规范.txt",
+      "chunks": 4,
+      "status": "indexed",
+      "elapsed_seconds": 9.435,
+      "error": ""
+    },
+    {
+      "doc_id": "7d0efc3317164417ff6a1076",
+      "source": "046_RD_总部_研发质量与版本发布规范.md",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 11.678,
+      "error": ""
+    },
+    {
+      "doc_id": "a51177e06b672eace87137de",
+      "source": "047_RD_华东区_研发质量与版本发布规范.docx",
+      "chunks": 21,
+      "status": "indexed",
+      "elapsed_seconds": 12.366,
+      "error": ""
+    },
+    {
+      "doc_id": "1616e8731dfd412c16bdc4ea",
+      "source": "048_RD_华南区_研发质量与版本发布规范.pdf",
+      "chunks": 5,
+      "status": "indexed",
+      "elapsed_seconds": 11.931,
+      "error": ""
+    },
+    {
+      "doc_id": "52ee629381e38e06c9af30dc",
+      "source": "049_RD_西南区_研发质量与版本发布规范.xlsx",
+      "chunks": 6,
+      "status": "indexed",
+      "elapsed_seconds": 11.97,
+      "error": ""
+    },
+    {
+      "doc_id": "27ef6fe631df551fa77a8540",
+      "source": "050_RD_北方区_研发质量与版本发布规范.txt",
+      "chunks": 4,
+      "status": "indexed",
+      "elapsed_seconds": 11.908,
+      "error": ""
+    }
+  ]
+}

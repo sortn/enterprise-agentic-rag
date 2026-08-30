@@ -1,0 +1,75 @@
+{
+  "run_name": "grounding_router_fixed_v2",
+  "dataset": "grounding_test.jsonl",
+  "questions": 200,
+  "answerable_questions": 100,
+  "unanswerable_questions": 100,
+  "completed_at": "2026-08-27T11:44:21.367072+08:00",
+  "metric_definition": {
+    "unsupported_answer": "The system attempted an answer to a frozen unanswerable question.",
+    "unsupported_answer_rate_overall": "Unsupported answers divided by all 200 questions.",
+    "answerable_keyword_accuracy": "All frozen answer keywords occur in a non-refusal answer.",
+    "task_success": "Correct-keyword answer when answerable, or refusal when unanswerable.",
+    "judge": "deterministic labels and string rules; no LLM judge"
+  },
+  "methods": {
+    "dense_rag": {
+      "questions": 200,
+      "errors": 0,
+      "answerable_questions": 100,
+      "unanswerable_questions": 100,
+      "answerable_keyword_accuracy": 0.67,
+      "answerable_keyword_accuracy_95ci": [
+        0.58,
+        0.76
+      ],
+      "answerable_source_recall": 0.81,
+      "unanswerable_refusal_rate": 1.0,
+      "unanswerable_refusal_rate_95ci": [
+        1.0,
+        1.0
+      ],
+      "unsupported_answer_rate_overall": 0.0,
+      "unsupported_answer_rate_overall_95ci": [
+        0.0,
+        0.0
+      ],
+      "task_success_rate": 0.835,
+      "task_success_rate_95ci": [
+        0.785,
+        0.885
+      ],
+      "mean_latency_ms": 1877.225,
+      "p95_latency_ms": 3438.998
+    },
+    "agentic_rag": {
+      "questions": 200,
+      "errors": 0,
+      "answerable_questions": 100,
+      "unanswerable_questions": 100,
+      "answerable_keyword_accuracy": 0.95,
+      "answerable_keyword_accuracy_95ci": [
+        0.9,
+        0.99
+      ],
+      "answerable_source_recall": 0.98,
+      "unanswerable_refusal_rate": 1.0,
+      "unanswerable_refusal_rate_95ci": [
+        1.0,
+        1.0
+      ],
+      "unsupported_answer_rate_overall": 0.0,
+      "unsupported_answer_rate_overall_95ci": [
+        0.0,
+        0.0
+      ],
+      "task_success_rate": 0.975,
+      "task_success_rate_95ci": [
+        0.955,
+        0.995
+      ],
+      "mean_latency_ms": 12418.321,
+      "p95_latency_ms": 32297.108
+    }
+  }
+}

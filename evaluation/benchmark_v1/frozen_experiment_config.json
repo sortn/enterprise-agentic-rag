@@ -1,0 +1,47 @@
+{
+  "protocol": "benchmark_v1",
+  "status": "frozen_before_test",
+  "frozen_at": "2026-08-27T10:44:46.006934+08:00",
+  "collection": "enterprise_benchmark_v1",
+  "inputs": {
+    "facts.jsonl": {
+      "sha256": "d0b7e390ee0d902d269c397c26b7c3d2f9880680a4267654628cc5286eaab67f",
+      "bytes": 1007367
+    },
+    "retrieval_dev.jsonl": {
+      "sha256": "f84d5d3e412e308c921726e0fb91cdc72608592923b034b59d194686a7527f45",
+      "bytes": 62393
+    },
+    "retrieval_test.jsonl": {
+      "sha256": "427b3e1a7895037cc27e0ede4a2a3a9801de82c133da34f9d544d3219ee96ddc",
+      "bytes": 312009
+    },
+    "grounding_test.jsonl": {
+      "sha256": "3cf04df6cda5d3085a389e4667436756e200f63d07ee285c83c1785d393c4751",
+      "bytes": 106773
+    },
+    "corpus_manifest.json": {
+      "sha256": "01bb9db7c5910f78733caa3881b46aa07901e942b4e99796ae13a38edfa10805",
+      "bytes": 21798
+    }
+  },
+  "development_result": {
+    "path": "results\\dev_v1\\retrieval_summary.json",
+    "sha256": "8031ac50bd350f8a3480ee9b3f91d0f47e2b205ff303958a66de955eeff967e9"
+  },
+  "retrieval": {
+    "evaluated_k": 5,
+    "dense_top_k": 24,
+    "sparse_top_k": 24,
+    "fusion_top_k": 24,
+    "rerank_top_k": 5,
+    "embedding_model": "BAAI/bge-m3",
+    "rerank_model": "BAAI/bge-reranker-v2-m3"
+  },
+  "chunking": {
+    "parent_chunk_size": 1800,
+    "child_chunk_size": 700,
+    "child_chunk_overlap": 120
+  },
+  "test_policy": "No parameter, label, corpus, or query changes after this file is written."
+}

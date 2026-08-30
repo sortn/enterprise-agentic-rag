@@ -1,0 +1,13 @@
+{
+  "status": "frozen_before_post_fix_holdout_run",
+  "created_at": "2026-08-27T11:47:47.132568+08:00",
+  "seed": 20260828,
+  "dataset": "grounding_holdout_v1.jsonl",
+  "dataset_sha256": "b67fe75d55a089c6b2e422c91e81d8bbd7d08cdae9dd0cd115ab889096d46d96",
+  "facts_sha256": "d0b7e390ee0d902d269c397c26b7c3d2f9880680a4267654628cc5286eaab67f",
+  "questions": 100,
+  "answerable": 50,
+  "unanswerable": 50,
+  "source_fact_policy": "Answerable facts are disjoint from retrieval dev/test and grounding_test.",
+  "unanswerable_policy": "Plausible absent subjects, with no explicit fake/VOID cue."
+}
