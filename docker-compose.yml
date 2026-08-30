@@ -20,10 +20,10 @@ services:
     container_name: enterprise-rag-minio
     image: minio/minio:RELEASE.2024-12-18T13-15-44Z
     environment:
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     ports:
-      - "9001:9001"
+      - "127.0.0.1:9001:9001"
     command: minio server /minio_data --console-address ":9001"
     volumes:
       - ./volumes/minio:/minio_data
@@ -45,8 +45,8 @@ services:
     volumes:
       - ./volumes/milvus:/var/lib/milvus
     ports:
-      - "19530:19530"
-      - "9091:9091"
+      - "127.0.0.1:19530:19530"
+      - "127.0.0.1:9091:9091"
     depends_on:
       etcd:
         condition: service_healthy
@@ -71,7 +71,7 @@ services:
       MILVUS_URI: http://milvus:19530
       API_BASE_URL: http://127.0.0.1:8000
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - ./data:/app/data
       - ./evaluation:/app/evaluation
@@ -79,8 +79,8 @@ services:
       milvus:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready', timeout=5)"]
       interval: 10s
-      start_period: 30s
+      start_period: 60s
       timeout: 5s
       retries: 6

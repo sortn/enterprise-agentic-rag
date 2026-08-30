@@ -41,21 +41,53 @@ def _ready_system() -> RAGSystem:
         return system.initialize()
     except Exception as exc:
         logger.exception("System initialization failed")
-        raise HTTPException(status_code=503, detail=f"系统尚未就绪：{exc}") from exc
+        raise HTTPException(
+            status_code=503,
+            detail="系统依赖尚未就绪，请检查服务端日志。",
+        ) from exc
 
 
-@app.get("/api/v1/health")
-def health():
+def _health_payload(status: str) -> dict:
     return {
-        "status": "ready" if system.initialized else "starting",
+        "status": status,
         "version": settings.app_version,
-        "milvus_uri": settings.milvus_uri,
         "models": {
             "llm": settings.llm_model,
             "embedding": settings.embedding_model,
             "reranker": settings.rerank_model,
         },
     }
+
+
+@app.get("/api/v1/health")
+def health():
+    """Compatibility summary; use the live/ready probes for orchestration."""
+    return _health_payload("ready" if system.initialized else "starting")
+
+
+@app.get("/api/v1/health/live")
+def health_live():
+    """Liveness proves the HTTP process can serve requests without touching dependencies."""
+    return {"status": "alive", "version": settings.app_version}
+
+
+@app.get("/api/v1/health/ready")
+def health_ready():
+    """Readiness initializes the application and performs a lightweight Milvus query."""
+    try:
+        rag = system.initialize()
+        if rag.store is None:
+            raise RuntimeError("Milvus store was not initialized")
+        rag.store.list_documents()
+    except Exception as exc:
+        logger.exception("Readiness probe failed")
+        raise HTTPException(
+            status_code=503,
+            detail="系统依赖尚未就绪，请检查服务端日志。",
+        ) from exc
+    payload = _health_payload("ready")
+    payload["checks"] = {"milvus": "ok", "model_api": "configured"}
+    return payload
 
 
 @app.get("/api/v1/documents")
@@ -98,7 +130,11 @@ def upload_documents(files: list[UploadFile] = File(...)):
                 destination.unlink(missing_ok=True)
             if isinstance(exc, HTTPException):
                 raise
-            raise HTTPException(status_code=422, detail=f"{filename} 入库失败：{exc}") from exc
+            logger.exception("Document ingestion failed: %s", filename)
+            raise HTTPException(
+                status_code=422,
+                detail=f"{filename} 入库失败，请检查文件格式或服务端日志。",
+            ) from exc
     return {"results": results}
 
 
@@ -130,7 +166,12 @@ def _sse_response(rag: RAGSystem, question: str, thread_id: str) -> StreamingRes
             for event in rag.stream(question, thread_id):
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
         except Exception as exc:
-            error = {"event": "error", "message": str(exc), "thread_id": thread_id}
+            logger.exception("Streaming chat failed")
+            error = {
+                "event": "error",
+                "message": "问答服务暂时不可用，请稍后重试。",
+                "thread_id": thread_id,
+            }
             yield f"data: {json.dumps(error, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(

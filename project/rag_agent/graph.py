@@ -1,4 +1,4 @@
-"""Explicit LangGraph workflow matching the nodes described in the resume."""
+"""Explicit LangGraph workflow for bounded, evidence-grounded question answering."""
 
 from __future__ import annotations
 
@@ -47,7 +47,6 @@ def create_agent_graph(
     graph.add_node("generate_answer", nodes.generate_answer)
     graph.add_node("fact_check", nodes.fact_check)
     graph.add_node("finish", nodes.finish)
-    graph.add_node("revise_answer", nodes.revise_answer)
 
     graph.add_edge(START, "analyze_query")
     graph.add_conditional_edges("analyze_query", route_after_analysis)
@@ -67,6 +66,5 @@ def create_agent_graph(
         partial(route_after_fact_check, settings=settings),
     )
     graph.add_edge("finish", END)
-    graph.add_edge("revise_answer", END)
 
     return graph.compile(checkpointer=checkpointer or InMemorySaver())

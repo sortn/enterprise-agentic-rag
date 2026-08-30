@@ -17,7 +17,6 @@ from .prompts import (
     ANSWER_PROMPT,
     FACT_CHECK_PROMPT,
     QUERY_PLAN_PROMPT,
-    REVISION_PROMPT,
     SEARCH_REWRITE_PROMPT,
 )
 from .schemas import FaithfulnessCheck, QueryPlan, SearchRewrite
@@ -65,6 +64,7 @@ class AgentNodes:
             "answer": "",
             "citations": [],
             "grounded": False,
+            "refused": False,
             "unsupported_claims": [],
             "last_error": "",
         }
@@ -106,7 +106,12 @@ class AgentNodes:
 
     def chitchat(self, state: State) -> dict[str, Any]:
         message = "你好，我可以查询企业制度、产品手册、产品价格、部门联系方式、实时库存和服务状态。你想了解哪一项？"
-        return {"answer": message, "messages": [AIMessage(content=message)], "grounded": True}
+        return {
+            "answer": message,
+            "messages": [AIMessage(content=message)],
+            "grounded": False,
+            "refused": False,
+        }
 
     def retrieve(self, state: State) -> dict[str, Any]:
         attempts = state.get("retrieval_attempts", 0) + 1
@@ -226,7 +231,12 @@ class AgentNodes:
         if state.get("last_error"):
             detail = "检索服务暂时不可用"
         message = f"当前知识库没有足够依据回答这个问题（{detail}）。请补充文档或换一个更具体的问法。"
-        return {"answer": message, "messages": [AIMessage(content=message)], "grounded": True}
+        return {
+            "answer": message,
+            "messages": [AIMessage(content=message)],
+            "grounded": False,
+            "refused": True,
+        }
 
     def generate_answer(self, state: State) -> dict[str, Any]:
         if state.get("tool_result"):
@@ -235,7 +245,12 @@ class AgentNodes:
         evidence, citations = self._build_evidence(state)
         if not evidence:
             message = "当前数据源没有返回可用证据，暂时无法回答。"
-            return {"answer": message, "messages": [AIMessage(content=message)], "grounded": True}
+            return {
+                "answer": message,
+                "messages": [AIMessage(content=message)],
+                "grounded": False,
+                "refused": True,
+            }
         response = self.llm.invoke(
             [
                 SystemMessage(content=ANSWER_PROMPT),
@@ -266,25 +281,6 @@ class AgentNodes:
     def finish(self, state: State) -> dict[str, Any]:
         answer = state.get("answer", "")
         return {"messages": [AIMessage(content=answer)]}
-
-    def revise_answer(self, state: State) -> dict[str, Any]:
-        try:
-            response = self.llm.invoke(
-                [
-                    SystemMessage(content=REVISION_PROMPT),
-                    HumanMessage(
-                        content=(
-                            f"问题：{state['question']}\n\n证据：{state.get('evidence', '')}\n\n"
-                            f"原回答：{state.get('answer', '')}\n\n"
-                            f"无依据内容：{json.dumps(state.get('unsupported_claims', []), ensure_ascii=False)}"
-                        )
-                    ),
-                ]
-            )
-            answer = str(response.content).strip()
-        except Exception:
-            answer = "事实校验未通过，当前证据不足以生成可靠回答。"
-        return {"answer": answer, "grounded": True, "messages": [AIMessage(content=answer)]}
 
     @staticmethod
     def _current_question(state: State) -> str:

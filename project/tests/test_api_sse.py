@@ -10,6 +10,12 @@ class FakeRag:
         yield {"event": "token", "content": "回答"}
 
 
+class FailingRag:
+    def stream(self, question, thread_id):
+        raise RuntimeError("internal service address")
+        yield
+
+
 @pytest.mark.asyncio
 async def test_sse_response_uses_explicit_question():
     response = _sse_response(FakeRag(), "测试问题", "thread-1")
@@ -19,3 +25,14 @@ async def test_sse_response_uses_explicit_question():
 
     assert '"event": "token"'.encode() in body
     assert "回答".encode() in body
+
+
+@pytest.mark.asyncio
+async def test_sse_error_is_sanitized():
+    response = _sse_response(FailingRag(), "测试问题", "thread-1")
+    body = b""
+    async for chunk in response.body_iterator:
+        body += chunk.encode() if isinstance(chunk, str) else chunk
+
+    assert '"event": "error"'.encode() in body
+    assert b"internal service address" not in body

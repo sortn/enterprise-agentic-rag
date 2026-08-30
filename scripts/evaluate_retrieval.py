@@ -1,4 +1,4 @@
-"""Run the exact Dense / Hybrid / Hybrid+Reranker resume comparison."""
+"""Compare Dense, Hybrid, and Hybrid+Reranker retrieval on one dataset."""
 
 from __future__ import annotations
 

@@ -21,6 +21,7 @@ class State(TypedDict, total=False):
     answer: str
     citations: list[dict[str, str]]
     grounded: bool
+    refused: bool
     unsupported_claims: list[str]
     last_error: str
 

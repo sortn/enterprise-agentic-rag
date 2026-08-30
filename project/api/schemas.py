@@ -15,6 +15,7 @@ class ChatResponse(BaseModel):
     rewritten_query: str
     citations: list[dict[str, str]]
     grounded: bool
+    refused: bool
     retrieval_attempts: int
 
 

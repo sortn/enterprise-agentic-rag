@@ -5,10 +5,11 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.116+-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-5EE7A6)
+[![CI](https://github.com/sortn/enterprise-agentic-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/sortn/enterprise-agentic-rag/actions/workflows/ci.yml)
 
 > 完整离线基准已跑通：500条冻结检索测试与100条独立答案holdout的协议、结果和限制见[评测报告](evaluation/benchmark_v1/REPORT.md)。
 
-面向 AI Agent / 大模型应用开发实习的可运行项目：支持企业 PDF、Word、Excel、Markdown 文档入库，使用 Milvus 完成 BGE Dense + BM25 双路召回、RRF 融合和 BGE Reranker 重排序，再由 LangGraph 编排查询改写、工具调用、相关性判断、二次检索、回答生成与事实校验。
+面向企业制度、技术文档和产品手册问答的可运行 Agentic RAG MVP：支持 PDF、Word、Excel、Markdown 文档入库，使用 Milvus 完成 BGE Dense + BM25 双路召回、RRF 融合和 BGE Reranker 重排序，再由 LangGraph 编排查询改写、工具调用、相关性判断、二次检索、回答生成与事实校验。
 
 <p align="center">
   <img src="assets/ui-preview.png" alt="企业知识库 Agentic RAG 前端" width="100%">
@@ -143,8 +144,8 @@ python scripts\generate_sample_documents.py
 ### 4. 启动 Milvus
 
 ```powershell
-docker-compose up -d etcd minio milvus
-docker-compose ps
+docker compose up -d etcd minio milvus
+docker compose ps
 ```
 
 Milvus gRPC 地址为 `127.0.0.1:19530`，管理/健康端口为 `9091`。
@@ -157,7 +158,9 @@ python project\app.py
 
 - 网页演示：<http://127.0.0.1:8000/ui>
 - FastAPI 文档：<http://127.0.0.1:8000/docs>
-- 健康检查：<http://127.0.0.1:8000/api/v1/health>
+- 状态摘要：<http://127.0.0.1:8000/api/v1/health>
+- 存活检查：<http://127.0.0.1:8000/api/v1/health/live>
+- 就绪检查：<http://127.0.0.1:8000/api/v1/health/ready>
 
 在“文档管理”页上传 `sample_data/generated/` 下的四份文件，再进入“知识问答”。
 
@@ -170,10 +173,12 @@ python scripts\ingest_documents.py sample_data\generated
 ### 6. 全容器部署
 
 ```powershell
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 应用容器和 Milvus、etcd、MinIO 会一起启动，网页地址仍是 <http://127.0.0.1:8000/ui>。
+
+> 安全边界：Compose 默认仅将管理端口绑定到本机回环地址，适合开发和演示。当前 MVP 没有实现用户认证、租户隔离和细粒度文档权限，不应直接暴露到公网。
 
 ## API 示例
 
@@ -184,7 +189,7 @@ $body = @{ question = "住宿费超标后怎么办？" } | ConvertTo-Json
 Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/v1/chat -ContentType application/json -Body $body
 ```
 
-SSE 流式接口为 `POST /api/v1/chat/stream`，依次返回 `start`、`node`、`token`、`final` 事件。为防止未经校验的幻觉内容提前泄露，`token` 是 Fact-Check 完成后对最终答案进行的安全分片。计划书中的兼容接口 `POST /api/upload_doc` 和 `GET /api/stream_chat?question=...` 也已保留。
+SSE 流式接口为 `POST /api/v1/chat/stream`，依次返回 `start`、`node`、`token`、`final` 事件。为防止未经校验的幻觉内容提前泄露，`token` 是 Fact-Check 完成后对最终答案进行的安全分片。最终结果分别使用 `grounded` 表示回答得到证据支持、`refused` 表示系统因证据不足而拒答，避免把安全拒答误标成有依据回答。兼容接口 `POST /api/upload_doc` 和 `GET /api/stream_chat?question=...` 也已保留。
 
 ## 离线评测
 
@@ -239,6 +244,15 @@ python -m pytest project\tests -q
 
 ## 项目来源与独立改造
 
-仓库最初以 Giovanni Pasq 的 MIT 项目 [agentic-rag-for-dummies](https://github.com/GiovanniPasq/agentic-rag-for-dummies) 作为 LangGraph 学习材料。当前企业版保留来源说明，并对以下部分进行了独立重构：多格式解析、Milvus Schema、BGE API、BM25/RRF/Reranker、企业工具、显式可靠性工作流、FastAPI SSE、模拟企业数据、对照评测和 Docker Compose。
+仓库最初以 Giovanni Pasqualino 的 MIT 项目 [agentic-rag-for-dummies](https://github.com/GiovanniPasq/agentic-rag-for-dummies) 作为 LangGraph 学习材料。当前企业版保留来源说明，并对以下部分进行了独立重构：多格式解析、Milvus Schema、BGE API、BM25/RRF/Reranker、企业工具、显式可靠性工作流、FastAPI SSE、模拟企业数据、对照评测和 Docker Compose。
+
+| 改造领域 | 当前仓库中的可核验实现 |
+|---|---|
+| 文档入库 | 多格式解析、Parent-Child 切分、父块持久化与批量入库脚本 |
+| 检索链路 | Milvus Dense/BM25、RRF、BGE Reranker及单路故障降级 |
+| Agent 工作流 | 显式 LangGraph 节点、有限重试、企业工具、证据校验与安全拒答 |
+| 服务与交互 | FastAPI、校验后 SSE、文档管理 API 和 Gradio 工作台 |
+| 实验验证 | 确定性合成数据、冻结测试集、逐题结果、置信区间和失败样本 |
+| 工程交付 | Docker Compose、依赖锁定、单元测试、CI 与公开限制清单 |
 
 LICENSE继续采用MIT，详细归属与改造范围见[NOTICE](NOTICE.md)。使用或介绍项目时应如实说明基础来源，并重点讲清独立重构、实验结果和工程取舍。

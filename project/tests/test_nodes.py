@@ -26,6 +26,13 @@ def test_business_tool_answer_is_grounded_without_generation():
     assert "[来源：业务接口]" in answer
 
 
+def test_refusal_is_not_reported_as_grounded():
+    result = AgentNodes(None, None, {}).refuse({"retrieval_attempts": 2})
+
+    assert result["refused"] is True
+    assert result["grounded"] is False
+
+
 class ContextSettings:
     context_token_budget = 100
 

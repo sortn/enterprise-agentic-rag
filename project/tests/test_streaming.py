@@ -19,6 +19,7 @@ class FakeGraph:
                 "rewritten_query": "制度",
                 "citations": [],
                 "grounded": True,
+                "refused": False,
                 "retrieval_attempts": 1,
             }
         )
@@ -32,3 +33,4 @@ def test_stream_emits_verified_answer_chunks():
     events = list(system.stream("问题", "thread-1"))
     assert "".join(event["content"] for event in events if event["event"] == "token") == "完整答案"
     assert events[-1]["event"] == "final"
+    assert events[-1]["refused"] is False

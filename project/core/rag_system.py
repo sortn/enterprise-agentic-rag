@@ -87,6 +87,7 @@ class RAGSystem:
             "rewritten_query": result.get("rewritten_query", ""),
             "citations": result.get("citations", []),
             "grounded": bool(result.get("grounded", False)),
+            "refused": bool(result.get("refused", False)),
             "retrieval_attempts": int(result.get("retrieval_attempts", 0)),
         }
 
@@ -130,6 +131,7 @@ class RAGSystem:
             "rewritten_query": snapshot.get("rewritten_query", ""),
             "citations": snapshot.get("citations", []),
             "grounded": bool(snapshot.get("grounded", False)),
+            "refused": bool(snapshot.get("refused", False)),
             "retrieval_attempts": int(snapshot.get("retrieval_attempts", 0)),
         }
 
