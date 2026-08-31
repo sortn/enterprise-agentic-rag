@@ -42,7 +42,6 @@ project/ui/gradio_app.py
 LEARNING_GUIDE.md
 INDUSTRIAL_ARCHITECTURE_DESIGN.md
 PROJECT_LIMITATIONS.md
-design/PRODUCTION_ARCHITECTURE.md
 
 notebooks/output.csv
 
