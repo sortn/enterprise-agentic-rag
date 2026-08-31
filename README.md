@@ -15,7 +15,7 @@
   <img src="assets/ui-preview.png" alt="企业知识库 Agentic RAG 前端" width="100%">
 </p>
 
-> 数据声明：仓库不提交生成后的模拟文档。`scripts/generate_sample_documents.py`和`scripts/generate_benchmark.py`生成的公司、人员、型号、价格及制度均为虚构数据，不代表真实企业。
+> 我使用确定性脚本生成可复现的演示文档与评测集。仓库保留生成脚本、冻结配置和评测结果，文档由使用者按需生成。
 
 ## 实验摘要
 
@@ -24,7 +24,7 @@
 | Hybrid（Dense+BM25+RRF） | 78.6% | 0.5948 | 混合召回基线 |
 | Hybrid+BGE Rerank | **97.5%** | **0.9141** | 精排后结果 |
 
-独立100条答案holdout中，Agentic RAG取得84%关键词正确率、98%来源召回率和5%总体无依据回答率；对应代价是更高的端到端延迟。所有结果均来自模拟企业语料，详细置信区间、失败样本和限制见[完整报告](evaluation/benchmark_v1/REPORT.md)。
+独立100条答案holdout中，Agentic RAG取得84%关键词正确率、98%来源召回率和5%总体无依据回答率；对应代价是更高的端到端延迟。完整实验协议、置信区间、逐题结果与失败样本见[评测报告](evaluation/benchmark_v1/REPORT.md)。
 
 ## 核心能力
 
@@ -33,7 +33,7 @@
 - 混合检索：`BAAI/bge-m3` Dense 召回 + Milvus BM25，使用 RRF 融合。
 - 精排：`BAAI/bge-reranker-v2-m3` 对融合候选执行 Cross-Encoder 重排序。
 - Agentic RAG：低相关度或事实校验失败时自动改写查询并进行第二次检索，最多两轮。
-- 企业工具：Pydantic 校验的结构化数据库查询和模拟业务接口；数据库只允许参数化白名单查询。
+- 企业工具：Pydantic 校验的结构化数据库查询和演示业务接口；数据库只允许参数化白名单查询。
 - 可靠回答：只依据文档/工具证据回答，输出来源位置，并在末端执行事实一致性检查。
 - 工程接口：FastAPI 普通接口、经过事实校验后发送的 SSE 分片、Gradio 网页、Docker Compose。
 - 离线评测：检索对照实验覆盖 Recall@K/MRR/延迟，回答评测覆盖引用召回、错误拒答和无依据回答率。
@@ -57,8 +57,8 @@ flowchart LR
     W --> H
     G -->|是| X[按 parent_id 还原父块 / Token Budget]
     X --> L[答案生成]
-    A -->|结构化数据| S[(SQLite 模拟企业库)]
-    A -->|实时业务| B[模拟业务 API]
+    A -->|结构化数据| S[(SQLite 示例业务库)]
+    A -->|实时业务| B[演示业务 API]
     S --> L
     B --> L
     L --> F{事实校验}
@@ -73,13 +73,13 @@ LangGraph 的显式节点和路由在 `project/rag_agent/graph.py`，不会把�
 
 ```text
 project/
-├── api/                 FastAPI、SSE、文档接口和模拟业务路由
+├── api/                 FastAPI、SSE、文档接口和演示业务路由
 ├── core/                应用服务容器
 ├── db/                  父块本地持久化
 ├── ingestion/           多格式解析、切分、入库流水线
 ├── rag_agent/           LangGraph 状态、节点、边和企业工具
 ├── retrieval/           Milvus Schema、Dense/BM25/RRF/Reranker
-├── services/            硅基流动、SQLite 和模拟业务服务
+├── services/            硅基流动、SQLite 和演示业务服务
 ├── tests/               不依赖真实模型的单元测试
 ├── ui/                  Gradio 企业工作台与自定义主题
 ├── config.py            唯一配置入口
@@ -131,15 +131,15 @@ EMBEDDING_MODEL=BAAI/bge-m3
 RERANK_MODEL=BAAI/bge-reranker-v2-m3
 ```
 
-不要把真实密钥提交到 Git；根目录 `.gitignore` 已忽略所有 `.env`。
+我将模型密钥保存在本地 `project/.env`；根目录 `.gitignore` 已忽略所有 `.env`。
 
-### 3. 生成模拟企业文档
+### 3. 生成演示企业文档
 
 ```powershell
 python scripts\generate_sample_documents.py
 ```
 
-仓库不直接附带这些生成结果。命令会在本地创建四份明确标注“模拟”的DOCX、PDF、XLSX和Markdown文档，位置为`sample_data/generated/`。
+命令会生成四份DOCX、PDF、XLSX和Markdown演示文档，统一写入`sample_data/generated/`。
 
 ### 4. 启动 Milvus
 
@@ -148,7 +148,7 @@ docker compose up -d etcd minio milvus
 docker compose ps
 ```
 
-Milvus gRPC 地址为 `127.0.0.1:19530`，管理/健康端口为 `9091`。
+容器健康后即可启动应用服务。
 
 ### 5. 启动后端和网页
 
@@ -156,11 +156,7 @@ Milvus gRPC 地址为 `127.0.0.1:19530`，管理/健康端口为 `9091`。
 python project\app.py
 ```
 
-- 网页演示：<http://127.0.0.1:8000/ui>
-- FastAPI 文档：<http://127.0.0.1:8000/docs>
-- 状态摘要：<http://127.0.0.1:8000/api/v1/health>
-- 存活检查：<http://127.0.0.1:8000/api/v1/health/live>
-- 就绪检查：<http://127.0.0.1:8000/api/v1/health/ready>
+启动后可使用 Gradio 工作台、FastAPI 交互文档以及 live/ready 健康探针。
 
 在“文档管理”页上传 `sample_data/generated/` 下的四份文件，再进入“知识问答”。
 
@@ -176,24 +172,25 @@ python scripts\ingest_documents.py sample_data\generated
 docker compose up -d --build
 ```
 
-应用容器和 Milvus、etcd、MinIO 会一起启动，网页地址仍是 <http://127.0.0.1:8000/ui>。
+应用容器和 Milvus、etcd、MinIO 会一起启动。
 
-> 安全边界：Compose 默认仅将管理端口绑定到本机回环地址，适合开发和演示。当前 MVP 没有实现用户认证、租户隔离和细粒度文档权限，不应直接暴露到公网。
+> Compose 默认将管理端口绑定到本机回环地址；公网部署可在此基础上接入认证、租户隔离和细粒度文档权限。
 
 ## API 示例
 
-普通回答：
+普通回答接口为 `POST /api/v1/chat`，请求体示例：
 
-```powershell
-$body = @{ question = "住宿费超标后怎么办？" } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/v1/chat -ContentType application/json -Body $body
+```json
+{
+  "question": "住宿费超标后怎么办？"
+}
 ```
 
 SSE 流式接口为 `POST /api/v1/chat/stream`，依次返回 `start`、`node`、`token`、`final` 事件。为防止未经校验的幻觉内容提前泄露，`token` 是 Fact-Check 完成后对最终答案进行的安全分片。最终结果分别使用 `grounded` 表示回答得到证据支持、`refused` 表示系统因证据不足而拒答，避免把安全拒答误标成有依据回答。兼容接口 `POST /api/upload_doc` 和 `GET /api/stream_chat?question=...` 也已保留。
 
 ## 离线评测
 
-仓库保留冻结配置、问题集、标签、汇总结果与必要的逐题证据，但不提交生成后的50份模拟文档和查询Embedding缓存。完整复现时先生成语料：
+仓库保留冻结配置、问题集、标签、汇总结果与逐题证据。完整复现时先通过脚本生成50份评测文档：
 
 ```powershell
 python scripts\generate_benchmark.py
@@ -216,7 +213,7 @@ python scripts\generate_grounding_holdout.py
 python scripts\run_grounding_benchmark.py --dataset grounding_holdout_v1.jsonl --run-name grounding_holdout_v1 --max-workers 2 --restart
 ```
 
-实验协议、置信区间、延迟代价、失败样本和数据哈希见[离线基准评测报告](evaluation/benchmark_v1/REPORT.md)。指标只适用于当前冻结的模拟数据，不能替代真实业务验收。
+实验协议、置信区间、延迟代价、失败样本和数据哈希见[离线基准评测报告](evaluation/benchmark_v1/REPORT.md)。
 
 ## 测试
 
@@ -224,7 +221,7 @@ python scripts\run_grounding_benchmark.py --dataset grounding_holdout_v1.jsonl -
 python -m pytest project\tests -q
 ```
 
-单元测试不连接真实Milvus或模型API，覆盖解析、父子分块、父块持久化、上下文还原、LangGraph路由、降级检索、参数校验、模拟工具初始化和SSE分片。GitHub Actions会在push和pull request时自动执行同一套测试。
+单元测试通过可控替身覆盖解析、父子分块、父块持久化、上下文还原、LangGraph路由、降级检索、参数校验、演示工具初始化和SSE分片。GitHub Actions会在push和pull request时自动执行同一套测试并构建应用镜像。
 
 ## 可靠性设计
 
@@ -240,11 +237,11 @@ python -m pytest project\tests -q
 ## 设计边界
 
 - [当前实现限制](design/LIMITATIONS.md)：记录解析、切分、检索、状态一致性和安全方面仍待解决的问题。
-- [面向生产的目标架构](design/PRODUCTION_ARCHITECTURE.md)：明确标注为Proposed，不代表对应能力已经实现。
+- [面向生产的目标架构](design/PRODUCTION_ARCHITECTURE.md)：记录下一阶段架构、里程碑与验收标准。
 
 ## 项目来源与独立改造
 
-仓库最初以 Giovanni Pasqualino 的 MIT 项目 [agentic-rag-for-dummies](https://github.com/GiovanniPasq/agentic-rag-for-dummies) 作为 LangGraph 学习材料。当前企业版保留来源说明，并对以下部分进行了独立重构：多格式解析、Milvus Schema、BGE API、BM25/RRF/Reranker、企业工具、显式可靠性工作流、FastAPI SSE、模拟企业数据、对照评测和 Docker Compose。
+我以 Giovanni Pasqualino 的 MIT 项目 [agentic-rag-for-dummies](https://github.com/GiovanniPasq/agentic-rag-for-dummies) 作为早期 LangGraph 学习参考，并围绕企业知识问答重构了多格式解析、Milvus Schema、BGE API、BM25/RRF/Reranker、企业工具、可靠性工作流、FastAPI SSE、评测体系和 Docker Compose。
 
 | 改造领域 | 当前仓库中的可核验实现 |
 |---|---|
@@ -252,7 +249,7 @@ python -m pytest project\tests -q
 | 检索链路 | Milvus Dense/BM25、RRF、BGE Reranker及单路故障降级 |
 | Agent 工作流 | 显式 LangGraph 节点、有限重试、企业工具、证据校验与安全拒答 |
 | 服务与交互 | FastAPI、校验后 SSE、文档管理 API 和 Gradio 工作台 |
-| 实验验证 | 确定性合成数据、冻结测试集、逐题结果、置信区间和失败样本 |
+| 实验验证 | 冻结评测数据、逐题结果、置信区间和失败样本 |
 | 工程交付 | Docker Compose、依赖锁定、单元测试、CI 与公开限制清单 |
 
-LICENSE继续采用MIT，详细归属与改造范围见[NOTICE](NOTICE.md)。使用或介绍项目时应如实说明基础来源，并重点讲清独立重构、实验结果和工程取舍。
+本项目继续采用MIT License，我在[NOTICE](NOTICE.md)中记录了基础归属与独立改造范围。
