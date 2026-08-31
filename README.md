@@ -90,8 +90,7 @@ scripts/
 ├── ingest_documents.py
 ├── generate_benchmark.py
 ├── run_retrieval_benchmark.py
-├── run_grounding_benchmark.py
-└── write_benchmark_report.py
+└── run_grounding_benchmark.py
 
 evaluation/benchmark_v1/
 docker-compose.yml
@@ -186,7 +185,7 @@ docker compose up -d --build
 }
 ```
 
-SSE 流式接口为 `POST /api/v1/chat/stream`，依次返回 `start`、`node`、`token`、`final` 事件。为防止未经校验的幻觉内容提前泄露，`token` 是 Fact-Check 完成后对最终答案进行的安全分片。最终结果分别使用 `grounded` 表示回答得到证据支持、`refused` 表示系统因证据不足而拒答，避免把安全拒答误标成有依据回答。兼容接口 `POST /api/upload_doc` 和 `GET /api/stream_chat?question=...` 也已保留。
+SSE 流式接口为 `POST /api/v1/chat/stream`，依次返回 `start`、`node`、`token`、`final` 事件。为防止未经校验的幻觉内容提前泄露，`token` 是 Fact-Check 完成后对最终答案进行的安全分片。最终结果分别使用 `grounded` 表示回答得到证据支持、`refused` 表示系统因证据不足而拒答，避免把安全拒答误标成有依据回答。
 
 ## 离线评测
 
@@ -234,11 +233,6 @@ python -m pytest project\tests -q
 - 上传文件限制扩展名、大小，并使用安全文件名。
 - 回答保留文件名和页码/工作表/标题路径，便于人工复核。
 
-## 设计边界
-
-- [当前实现限制](design/LIMITATIONS.md)：记录解析、切分、检索、状态一致性和安全方面仍待解决的问题。
-- [面向生产的目标架构](design/PRODUCTION_ARCHITECTURE.md)：记录下一阶段架构、里程碑与验收标准。
-
 ## 项目来源与独立改造
 
 我以 Giovanni Pasqualino 的 MIT 项目 [agentic-rag-for-dummies](https://github.com/GiovanniPasq/agentic-rag-for-dummies) 作为早期 LangGraph 学习参考，并围绕企业知识问答重构了多格式解析、Milvus Schema、BGE API、BM25/RRF/Reranker、企业工具、可靠性工作流、FastAPI SSE、评测体系和 Docker Compose。
@@ -250,6 +244,6 @@ python -m pytest project\tests -q
 | Agent 工作流 | 显式 LangGraph 节点、有限重试、企业工具、证据校验与安全拒答 |
 | 服务与交互 | FastAPI、校验后 SSE、文档管理 API 和 Gradio 工作台 |
 | 实验验证 | 冻结评测数据、逐题结果、置信区间和失败样本 |
-| 工程交付 | Docker Compose、依赖锁定、单元测试、CI 与公开限制清单 |
+| 工程交付 | Docker Compose、依赖锁定、单元测试、CI 与可复现实验报告 |
 
 本项目继续采用MIT License，我在[NOTICE](NOTICE.md)中记录了基础归属与独立改造范围。

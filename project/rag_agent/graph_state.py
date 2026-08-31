@@ -24,8 +24,3 @@ class State(TypedDict, total=False):
     refused: bool
     unsupported_claims: list[str]
     last_error: str
-
-
-# Kept as an alias so imports from the upstream tutorial fail gracefully while
-# the new graph uses a single explicit state object.
-AgentState = State

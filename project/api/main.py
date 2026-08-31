@@ -9,7 +9,7 @@ from typing import Iterator
 import uuid
 
 import gradio as gr
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
@@ -61,7 +61,7 @@ def _health_payload(status: str) -> dict:
 
 @app.get("/api/v1/health")
 def health():
-    """Compatibility summary; use the live/ready probes for orchestration."""
+    """Return a lightweight application status summary."""
     return _health_payload("ready" if system.initialized else "starting")
 
 
@@ -183,21 +183,6 @@ def _sse_response(rag: RAGSystem, question: str, thread_id: str) -> StreamingRes
             "X-Accel-Buffering": "no",
         },
     )
-
-
-# Compatibility aliases retained for the endpoint names in the project plan.
-@app.post("/api/upload_doc", include_in_schema=False)
-def upload_document_alias(file: UploadFile = File(...)):
-    return upload_documents([file])
-
-
-@app.get("/api/stream_chat", include_in_schema=False)
-def stream_chat_alias(
-    question: str = Query(min_length=1, max_length=2000),
-    thread_id: str | None = None,
-):
-    rag = _ready_system()
-    return _sse_response(rag, question, thread_id or rag.new_thread_id())
 
 
 @app.get("/mock-api/v1/inventory/{sku}")

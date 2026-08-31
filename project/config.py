@@ -124,17 +124,3 @@ def get_settings() -> Settings:
     settings = Settings()
     settings.ensure_directories()
     return settings
-
-
-# Compatibility aliases for the small amount of upstream code retained during
-# the rewrite. New modules should call get_settings() instead.
-_settings = get_settings()
-LLM_MODEL = _settings.llm_model
-LLM_TEMPERATURE = _settings.llm_temperature
-LLM_SEED = 42
-LLM_API_KEY = _settings.siliconflow_api_key
-LLM_BASE_URL = _settings.siliconflow_base_url
-LANGFUSE_ENABLED = _settings.langfuse_enabled
-LANGFUSE_PUBLIC_KEY = _settings.langfuse_public_key
-LANGFUSE_SECRET_KEY = _settings.langfuse_secret_key
-LANGFUSE_BASE_URL = _settings.langfuse_base_url

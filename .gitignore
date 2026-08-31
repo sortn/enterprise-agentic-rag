@@ -42,6 +42,7 @@ project/ui/gradio_app.py
 LEARNING_GUIDE.md
 INDUSTRIAL_ARCHITECTURE_DESIGN.md
 PROJECT_LIMITATIONS.md
+design/PRODUCTION_ARCHITECTURE.md
 
 notebooks/output.csv
 
@@ -51,3 +52,11 @@ rag_evaluation_*.png
 notebooks/ragas_*.csv
 notebooks/rag_evaluation_*.csv
 notebooks/rag_evaluation_*.png
+
+# Reproducible benchmark caches and non-final experiment runs.
+evaluation/benchmark_v1/results/**/query_embedding_ids.json
+evaluation/benchmark_v1/results/**/retrieval_details.csv
+evaluation/benchmark_v1/results/dev_v1/retrieval_details.jsonl
+evaluation/benchmark_v1/results/grounding_smoke/
+evaluation/benchmark_v1/results/grounding_v1/
+evaluation/benchmark_v1/results/grounding_router_fixed_v2/
