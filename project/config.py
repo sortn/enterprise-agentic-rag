@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "企业知识库 Agent"
-    app_version: str = "1.0.0"
+    app_version: str = "1.1.0"
     log_level: str = "INFO"
 
     siliconflow_api_key: str = Field(
@@ -47,15 +47,38 @@ class Settings(BaseSettings):
 
     milvus_uri: str = "http://127.0.0.1:19530"
     milvus_token: str = "root:Milvus"
-    milvus_collection: str = "enterprise_knowledge_chunks"
+    milvus_collection: str = "enterprise_knowledge_chunks_v2"
 
     data_dir: Path = REPO_DIR / "data"
     upload_dir: Path = REPO_DIR / "data" / "uploads"
     parsed_dir: Path = REPO_DIR / "data" / "parsed"
     parent_store_dir: Path = REPO_DIR / "data" / "parents"
     evaluation_dir: Path = REPO_DIR / "evaluation"
-    structured_db_path: Path = REPO_DIR / "data" / "enterprise.db"
-    business_data_path: Path = REPO_DIR / "data" / "business_api.json"
+    database_url: str = Field(
+        default="postgresql+asyncpg://enterprise_rag:enterprise_rag@127.0.0.1:5432/enterprise_rag",
+        repr=False,
+    )
+    database_echo: bool = False
+    database_pool_size: int = 10
+    database_max_overflow: int = 20
+    database_schema: str = ""
+    auto_create_schema: bool = False
+    redis_url: str = Field(default="redis://127.0.0.1:6379/0", repr=False)
+    conversation_cache_ttl_seconds: int = 1800
+    conversation_cache_messages: int = 12
+    retrieval_cache_ttl_seconds: int = 300
+    permission_cache_ttl_seconds: int = 300
+    auth_private_key_path: Path = REPO_DIR / ".runtime" / "auth" / "keys" / "private.pem"
+    auth_public_key_path: Path = REPO_DIR / ".runtime" / "auth" / "keys" / "public.pem"
+    auth_key_id: str = "enterprise-rag-auth-v1"
+    auth_rsa_key_size: int = 3072
+    auth_access_token_minutes: int = 15
+    auth_refresh_token_days: int = 7
+    auth_jwt_issuer: str = "enterprise-agentic-rag"
+    auth_jwt_audience: str = "enterprise-agentic-rag-api"
+    auth_default_tenant_id: str = "00000000-0000-0000-0000-000000000001"
+    auth_default_tenant_name: str = "默认企业"
+    auth_first_user_admin: bool = True
 
     parent_chunk_size: int = 1800
     child_chunk_size: int = 700
@@ -67,6 +90,8 @@ class Settings(BaseSettings):
     rrf_k: int = 60
     relevance_threshold: float = 0.20
     max_retrieval_attempts: int = 2
+    query_rewrite_enabled: bool = True
+    parent_expansion_enabled: bool = True
     context_token_budget: int = 6000
     sse_chunk_size: int = 12
 
@@ -94,11 +119,27 @@ class Settings(BaseSettings):
         "max_retrieval_attempts",
         "sse_chunk_size",
         "max_upload_mb",
+        "auth_rsa_key_size",
+        "auth_access_token_minutes",
+        "auth_refresh_token_days",
+        "database_pool_size",
+        "database_max_overflow",
+        "conversation_cache_ttl_seconds",
+        "conversation_cache_messages",
+        "retrieval_cache_ttl_seconds",
+        "permission_cache_ttl_seconds",
     )
     @classmethod
     def validate_positive_integer(cls, value: int, info):
         if value <= 0:
             raise ValueError(f"{info.field_name} must be greater than zero")
+        return value
+
+    @field_validator("auth_rsa_key_size")
+    @classmethod
+    def validate_rsa_key_size(cls, value: int):
+        if value < 2048:
+            raise ValueError("auth_rsa_key_size must be at least 2048")
         return value
 
     def ensure_directories(self) -> None:
@@ -108,6 +149,8 @@ class Settings(BaseSettings):
             self.parsed_dir,
             self.parent_store_dir,
             self.evaluation_dir,
+            self.auth_private_key_path.parent,
+            self.auth_public_key_path.parent,
         ):
             path.mkdir(parents=True, exist_ok=True)
 

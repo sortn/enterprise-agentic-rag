@@ -16,10 +16,7 @@ venv
 
 volumes
 qdrant_db
-parent_store
-markdown_docs
 docs
-notebooks
 sample_data/generated
 
 data
@@ -29,10 +26,3 @@ evaluation/benchmark_v1/corpus
 evaluation/benchmark_v1/results/**/query_embeddings.npz
 
 *.pdf
-assets/demo.gif
-assets/agentic_rag_workflow.png
-assets/logo.png
-project/ui/gradio_app.py
-LEARNING_GUIDE.md
-INDUSTRIAL_ARCHITECTURE_DESIGN.md
-PROJECT_LIMITATIONS.md

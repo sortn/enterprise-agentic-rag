@@ -252,18 +252,48 @@ body::before {
     color: #d9e9f3 !important;
     background: rgba(15,29,46,.88) !important;
 }
+#knowledge-chatbot .message.bot :not(pre) > code {
+    padding: 2px 7px !important;
+    border: 1px solid rgba(94, 231, 242, .32) !important;
+    border-radius: 6px !important;
+    color: #a5f3fc !important;
+    background: rgba(8, 145, 178, .2) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05) !important;
+    font: 700 0.9em/1.5 "JetBrains Mono", Consolas, monospace !important;
+    -webkit-text-fill-color: #a5f3fc !important;
+}
 .empty-chat { display: flex; flex-direction: column; gap: 9px; align-items: center; color: #698399; }
 .empty-chat strong { color: #bfd5e3; font-size: 17px; }
 .empty-chat span { max-width: 430px; font-size: 13px; line-height: 1.6; text-align: center; }
 #main-tabs textarea { color: #e9f6ff !important; caret-color: var(--cyan) !important; }
-#main-tabs textarea::placeholder { color: #607b91 !important; }
+#main-tabs textarea::placeholder { color: #86a3b7 !important; opacity: 1 !important; }
 #main-tabs form {
     margin: 0 16px 17px !important;
-    padding: 8px !important;
-    border: 1px solid rgba(103,232,249,.18) !important;
+    padding: 10px 10px 10px 14px !important;
+    border: 2px solid rgba(103,232,249,.62) !important;
     border-radius: 16px !important;
-    background: rgba(15,29,46,.94) !important;
-    box-shadow: 0 12px 34px rgba(1,8,18,.24) !important;
+    background: linear-gradient(135deg, rgba(18,39,61,.98), rgba(10,25,43,.98)) !important;
+    box-shadow: 0 0 0 1px rgba(103,232,249,.08), 0 16px 40px rgba(1,8,18,.36) !important;
+    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+#main-tabs form:focus-within {
+    border-color: var(--cyan) !important;
+    box-shadow: 0 0 0 4px rgba(34,211,238,.14), 0 18px 46px rgba(1,8,18,.42) !important;
+    transform: translateY(-1px);
+}
+#question-input textarea {
+    min-height: 62px !important;
+    padding: 12px 10px !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    line-height: 1.65 !important;
+    background: transparent !important;
+}
+#main-tabs form button {
+    min-width: 84px !important;
+    min-height: 44px !important;
+    border-radius: 12px !important;
+    font-weight: 800 !important;
 }
 
 button.primary {
@@ -323,6 +353,30 @@ button.stop { border-radius: 12px !important; }
 .guide-card strong, .guide-card small { display: block; }
 .guide-card strong { color: #b9cfdd; font-size: 12px; }
 .guide-card small { margin-top: 3px; color: #668197; font-size: 11px; line-height: 1.45; }
+
+#auth-gateway {
+    max-width: 560px !important;
+    margin: 28px auto 8px !important;
+    padding: 28px !important;
+    border: 1px solid var(--line-strong) !important;
+    border-radius: 20px !important;
+    background: linear-gradient(145deg, rgba(15,29,46,.96), rgba(7,17,31,.92)) !important;
+    box-shadow: 0 22px 60px rgba(0,0,0,.24) !important;
+}
+.auth-heading h2 { margin-bottom: 8px !important; color: #e8f8ff !important; }
+.auth-heading p, .auth-message { color: var(--muted) !important; }
+#auth-tabs { border: 0 !important; background: transparent !important; }
+#auth-tabs input { min-height: 46px !important; }
+.user-session-bar {
+    align-items: center !important;
+    margin-bottom: 12px !important;
+    padding: 10px 14px !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 12px !important;
+    background: rgba(7,17,31,.46) !important;
+}
+.user-session-bar button { max-width: 110px !important; }
+.user-identity { color: #b9d7e6 !important; }
 
 .app-footer {
     display: flex;

@@ -1,35 +1,46 @@
-import json
-
-from services.business_api import MockBusinessService
-from services.structured_data import StructuredDataService
+from services.tool_data import EnterpriseToolDataService
 
 
 class ServiceSettings:
-    def __init__(self, tmp_path):
-        self.structured_db_path = tmp_path / "enterprise.db"
-        self.business_data_path = tmp_path / "business.json"
+    database_url = "postgresql+asyncpg://user:password@localhost:5432/test"
+    database_schema = ""
 
 
-def test_parameterized_product_query(tmp_path):
-    service = StructuredDataService(ServiceSettings(tmp_path))
+def test_allowlisted_product_query_uses_postgresql(monkeypatch):
+    service = EnterpriseToolDataService(ServiceSettings())
+
+    async def fetchrow(statement, identifier):
+        assert "FROM products" in statement
+        assert identifier == "NX-MEET-PRO"
+        return {
+            "sku": identifier,
+            "name": "星云会议终端专业版",
+            "list_price": 6999.0,
+            "warranty_years": 3,
+        }
+
+    monkeypatch.setattr(service, "_fetchrow", fetchrow)
     result = service.query("product", "nx-meet-pro")
     assert result["found"] is True
     assert result["list_price"] == 6999.0
 
 
-def test_mock_business_api(tmp_path):
-    settings = ServiceSettings(tmp_path)
-    settings.business_data_path.write_text(
-        json.dumps({"inventory": {"SKU-1": {"available": 3}}}), encoding="utf-8"
-    )
-    service = MockBusinessService(settings)
+def test_inventory_lookup_uses_postgresql_and_normalizes_identifier(monkeypatch):
+    service = EnterpriseToolDataService(ServiceSettings())
+
+    async def fetchrow(statement, identifier):
+        assert "FROM product_inventory" in statement
+        return {"identifier": identifier, "available": 3, "reserved": 1, "warehouse": "测试仓"}
+
+    monkeypatch.setattr(service, "_fetchrow", fetchrow)
     assert service.lookup("inventory", "sku-1")["available"] == 3
+
+
+def test_missing_tool_record_is_reported(monkeypatch):
+    service = EnterpriseToolDataService(ServiceSettings())
+
+    async def fetchrow(_statement, _identifier):
+        return None
+
+    monkeypatch.setattr(service, "_fetchrow", fetchrow)
     assert service.lookup("inventory", "missing")["found"] is False
-
-
-def test_mock_business_api_bootstraps_demo_data(tmp_path):
-    settings = ServiceSettings(tmp_path)
-    service = MockBusinessService(settings)
-
-    assert settings.business_data_path.exists()
-    assert service.lookup("inventory", "nx-meet-pro")["found"] is True

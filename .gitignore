@@ -12,16 +12,12 @@ __pycache__/
 venv/
 
 qdrant_db/
-markdown_docs/
-parent_store/
-docs/
-notebooks/
+docs/*
+!docs/EVALUATION_GUIDE.md
 data/uploads/
 data/parsed/
 data/parents/*.json
-data/*.db
 data/*.log
-data/business_api.json
 volumes/
 evaluation/results/
 evaluation/REPORT.md
@@ -33,24 +29,11 @@ evaluation/benchmark_v1/results/**/query_embeddings.npz
 evaluation/benchmark_v1/BENCHMARK_REPORT.md
 sample_data/generated/
 
-# Local-only personal and legacy presentation files.
 *.pdf
-assets/demo.gif
-assets/agentic_rag_workflow.png
-assets/logo.png
-project/ui/gradio_app.py
-LEARNING_GUIDE.md
-INDUSTRIAL_ARCHITECTURE_DESIGN.md
-PROJECT_LIMITATIONS.md
-
-notebooks/output.csv
 
 ragas_*.csv
 rag_evaluation_*.csv
 rag_evaluation_*.png
-notebooks/ragas_*.csv
-notebooks/rag_evaluation_*.csv
-notebooks/rag_evaluation_*.png
 
 # Reproducible benchmark caches and non-final experiment runs.
 evaluation/benchmark_v1/results/**/query_embedding_ids.json

@@ -21,6 +21,9 @@ class ChunkRecord:
     locator: str
     text: str
     dense: list[float]
+    tenant_id: str = ""
+    knowledge_base_id: str = ""
+    document_version: int = 1
 
 
 @dataclass
@@ -35,12 +38,25 @@ class SearchHit:
     locator: str
     retrieval_method: str
     rerank_score: float | None = None
+    tenant_id: str = ""
+    knowledge_base_id: str = ""
+    document_version: int = 1
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
-OUTPUT_FIELDS = ["doc_id", "parent_id", "source", "heading", "locator", "text"]
+OUTPUT_FIELDS = [
+    "doc_id",
+    "parent_id",
+    "source",
+    "heading",
+    "locator",
+    "text",
+    "tenant_id",
+    "knowledge_base_id",
+    "document_version",
+]
 
 
 class MilvusStore:
@@ -53,9 +69,16 @@ class MilvusStore:
             uri=self.settings.milvus_uri,
             token=self.settings.milvus_token or None,
         )
+        self._supports_scope = False
 
     def ensure_collection(self) -> None:
         if self.client.has_collection(self.collection_name):
+            description = self.client.describe_collection(self.collection_name)
+            fields = {
+                str(item.get("name") or item.get("field_name"))
+                for item in description.get("fields", [])
+            }
+            self._supports_scope = {"tenant_id", "knowledge_base_id"}.issubset(fields)
             self.client.load_collection(self.collection_name)
             return
 
@@ -66,6 +89,9 @@ class MilvusStore:
         schema.add_field("source", DataType.VARCHAR, max_length=512)
         schema.add_field("heading", DataType.VARCHAR, max_length=1024)
         schema.add_field("locator", DataType.VARCHAR, max_length=256)
+        schema.add_field("tenant_id", DataType.VARCHAR, max_length=64)
+        schema.add_field("knowledge_base_id", DataType.VARCHAR, max_length=64)
+        schema.add_field("document_version", DataType.INT64)
         schema.add_field(
             "text",
             DataType.VARCHAR,
@@ -99,21 +125,36 @@ class MilvusStore:
             consistency_level="Bounded",
         )
         self.client.load_collection(self.collection_name)
+        self._supports_scope = True
 
     def insert(self, records: Iterable[ChunkRecord]) -> int:
         rows = [asdict(record) for record in records]
         if not rows:
             return 0
+        if not self._supports_scope:
+            for row in rows:
+                row.pop("tenant_id", None)
+                row.pop("knowledge_base_id", None)
+                row.pop("document_version", None)
         self.client.insert(collection_name=self.collection_name, data=rows)
         self.client.flush(collection_name=self.collection_name)
         return len(rows)
 
-    def delete_document(self, doc_id: str) -> None:
+    def delete_document(
+        self,
+        doc_id: str,
+        tenant_id: str | None = None,
+        knowledge_base_id: str | None = None,
+    ) -> None:
         if not re.fullmatch(r"[a-f0-9]{24}", doc_id):
             raise ValueError("Invalid document id")
+        expression = f'doc_id == "{doc_id}"'
+        scope = self._scope_filter(tenant_id, knowledge_base_id)
+        if scope:
+            expression = f"{expression} and {scope}"
         self.client.delete(
             collection_name=self.collection_name,
-            filter=f'doc_id == "{doc_id}"',
+            filter=expression,
         )
 
     def clear(self) -> None:
@@ -121,35 +162,57 @@ class MilvusStore:
             self.client.drop_collection(self.collection_name)
         self.ensure_collection()
 
-    def list_documents(self) -> list[dict[str, str]]:
+    def list_documents(
+        self,
+        tenant_id: str | None = None,
+        knowledge_base_id: str | None = None,
+    ) -> list[dict[str, str]]:
+        scope = self._scope_filter(tenant_id, knowledge_base_id)
+        expression = 'doc_id != ""' + (f" and {scope}" if scope else "")
         rows = self.client.query(
             collection_name=self.collection_name,
-            filter='doc_id != ""',
+            filter=expression,
             output_fields=["doc_id", "source"],
             limit=16384,
         )
         unique = {(row["doc_id"], row["source"]) for row in rows}
         return [{"doc_id": doc_id, "source": source} for doc_id, source in sorted(unique)]
 
-    def search_dense(self, vector: list[float], limit: int | None = None) -> list[SearchHit]:
+    def search_dense(
+        self,
+        vector: list[float],
+        limit: int | None = None,
+        *,
+        tenant_id: str | None = None,
+        knowledge_base_id: str | None = None,
+    ) -> list[SearchHit]:
         result = self.client.search(
             collection_name=self.collection_name,
             data=[vector],
             anns_field="dense",
             search_params={"metric_type": "COSINE", "params": {}},
             limit=limit or self.settings.dense_top_k,
-            output_fields=OUTPUT_FIELDS,
+            filter=self._scope_filter(tenant_id, knowledge_base_id),
+            output_fields=self._output_fields(),
         )
         return self._convert_hits(result, "dense")
 
-    def search_sparse(self, query: str, limit: int | None = None) -> list[SearchHit]:
+    def search_sparse(
+        self,
+        query: str,
+        limit: int | None = None,
+        *,
+        tenant_id: str | None = None,
+        knowledge_base_id: str | None = None,
+    ) -> list[SearchHit]:
         result = self.client.search(
             collection_name=self.collection_name,
             data=[query],
             anns_field="sparse",
             search_params={"metric_type": "BM25", "params": {}},
             limit=limit or self.settings.sparse_top_k,
-            output_fields=OUTPUT_FIELDS,
+            filter=self._scope_filter(tenant_id, knowledge_base_id),
+            output_fields=self._output_fields(),
         )
         return self._convert_hits(result, "bm25")
 
@@ -158,25 +221,31 @@ class MilvusStore:
         query: str,
         vector: list[float],
         limit: int | None = None,
+        *,
+        tenant_id: str | None = None,
+        knowledge_base_id: str | None = None,
     ) -> list[SearchHit]:
+        scope = self._scope_filter(tenant_id, knowledge_base_id)
         dense_request = AnnSearchRequest(
             data=[vector],
             anns_field="dense",
             param={"metric_type": "COSINE", "params": {}},
             limit=self.settings.dense_top_k,
+            filter=scope,
         )
         sparse_request = AnnSearchRequest(
             data=[query],
             anns_field="sparse",
             param={"metric_type": "BM25", "params": {}},
             limit=self.settings.sparse_top_k,
+            filter=scope,
         )
         result = self.client.hybrid_search(
             collection_name=self.collection_name,
             reqs=[dense_request, sparse_request],
             ranker=RRFRanker(k=self.settings.rrf_k),
             limit=limit or self.settings.fusion_top_k,
-            output_fields=OUTPUT_FIELDS,
+            output_fields=self._output_fields(),
         )
         return self._convert_hits(result, "hybrid_rrf")
 
@@ -200,6 +269,38 @@ class MilvusStore:
                     heading=str(get_value("heading", "")),
                     locator=str(get_value("locator", "")),
                     retrieval_method=method,
+                    tenant_id=str(get_value("tenant_id", "")),
+                    knowledge_base_id=str(get_value("knowledge_base_id", "")),
+                    document_version=int(get_value("document_version", 1) or 1),
                 )
             )
         return converted
+
+    def _scope_filter(
+        self,
+        tenant_id: str | None,
+        knowledge_base_id: str | None,
+    ) -> str:
+        if not tenant_id and not knowledge_base_id:
+            return ""
+        if not self._supports_scope:
+            raise RuntimeError(
+                "Milvus collection uses the legacy unscoped schema; reindex into the v2 collection"
+            )
+        parts = []
+        if tenant_id:
+            parts.append(f'tenant_id == "{self._escape_filter(tenant_id)}"')
+        if knowledge_base_id:
+            parts.append(
+                f'knowledge_base_id == "{self._escape_filter(knowledge_base_id)}"'
+            )
+        return " and ".join(parts)
+
+    def _output_fields(self) -> list[str]:
+        return OUTPUT_FIELDS if self._supports_scope else OUTPUT_FIELDS[:6]
+
+    @staticmethod
+    def _escape_filter(value: str) -> str:
+        if not re.fullmatch(r"[A-Za-z0-9._:-]{1,64}", value):
+            raise ValueError("invalid tenant or knowledge-base identifier")
+        return value

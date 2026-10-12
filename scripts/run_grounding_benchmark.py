@@ -246,6 +246,16 @@ def main() -> None:
         help="Re-run the last N completed records (useful after a transient rate-limit window).",
     )
     parser.add_argument("--restart", action="store_true")
+    parser.add_argument(
+        "--rewrite-off",
+        action="store_true",
+        help="Disable query rewrite/retry for an OFF-vs-ON ablation run.",
+    )
+    parser.add_argument(
+        "--parent-expansion-off",
+        action="store_true",
+        help="Keep reranked child chunks without expanding them to parents.",
+    )
     args = parser.parse_args()
 
     rows = read_jsonl(BENCHMARK_DIR / args.dataset)
@@ -280,6 +290,10 @@ def main() -> None:
                 reused_dense[record["id"]] = record["dense_rag"]
 
     settings = build_settings()
+    if args.rewrite_off:
+        settings.query_rewrite_enabled = False
+    if args.parent_expansion_off:
+        settings.parent_expansion_enabled = False
     system = RAGSystem(settings).initialize()
     llm = build_chat_model(settings)
     started = time.perf_counter()
@@ -311,6 +325,8 @@ def main() -> None:
         "answerable_questions": sum(bool(row["answerable"]) for row in rows),
         "unanswerable_questions": sum(not bool(row["answerable"]) for row in rows),
         "completed_at": datetime.now().astimezone().isoformat(),
+        "query_rewrite_enabled": settings.query_rewrite_enabled,
+        "parent_expansion_enabled": settings.parent_expansion_enabled,
         "metric_definition": {
             "unsupported_answer": "The system attempted an answer to a frozen unanswerable question.",
             "unsupported_answer_rate_overall": "Unsupported answers divided by all evaluated questions.",

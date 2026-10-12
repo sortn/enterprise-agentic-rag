@@ -6,6 +6,8 @@ import json
 import logging
 import math
 import re
+import time
+import threading
 from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -38,10 +40,14 @@ class AgentNodes:
         self.tools = tools
         self.settings = settings or get_settings()
         self.parent_store = parent_store
+        self._local = threading.local()
 
     def analyze_query(self, state: State) -> dict[str, Any]:
+        self._local.prompt_tokens = 0
+        self._local.completion_tokens = 0
         question = self._current_question(state)
         history = self._conversation_context(state.get("messages", []))
+        started = time.perf_counter()
         plan = self._invoke_structured(
             QueryPlan,
             [
@@ -49,11 +55,16 @@ class AgentNodes:
                 HumanMessage(content=f"最近对话：\n{history or '(无)'}\n\n当前问题：\n{question}"),
             ],
         )
+        llm_latency_ms = round((time.perf_counter() - started) * 1000, 3)
         plan = self._enforce_plan_policy(question, plan)
         return {
             "question": question,
             "intent": plan.intent,
-            "rewritten_query": plan.rewritten_query,
+            "rewritten_query": (
+                plan.rewritten_query
+                if getattr(self.settings, "query_rewrite_enabled", True)
+                else question
+            ),
             "plan": plan.model_dump(),
             "retrieval_attempts": 0,
             "retrieve_chunks": [],
@@ -67,6 +78,9 @@ class AgentNodes:
             "refused": False,
             "unsupported_claims": [],
             "last_error": "",
+            "retrieval_metrics": {},
+            "llm_latency_ms": llm_latency_ms,
+            **self._token_usage(),
         }
 
     @staticmethod
@@ -94,11 +108,45 @@ class AgentNodes:
             )
             if not allowed:
                 updates.update(intent="knowledge", tool_name="none", identifier="")
+        elif plan.intent == "chitchat" and not AgentNodes._is_explicit_chitchat(question):
+            # An unfamiliar name may be the subject of an uploaded document. Only
+            # keep deterministic social phrases in the no-retrieval chitchat path.
+            updates.update(
+                intent="knowledge",
+                tool_name="none",
+                identifier="",
+                needs_clarification=False,
+                clarification_question="",
+            )
 
         ambiguous_reference = re.search(r"(?:它|那个|上一个|上一款|这款|该产品|该服务)", question)
         if plan.needs_clarification and not ambiguous_reference:
             updates.update(needs_clarification=False, clarification_question="")
         return plan.model_copy(update=updates) if updates else plan
+
+    @staticmethod
+    def _is_explicit_chitchat(question: str) -> bool:
+        normalized = re.sub(r"[\s，。！？!?、,.~～]+", "", question).lower()
+        return normalized in {
+            "你好",
+            "您好",
+            "嗨",
+            "哈喽",
+            "hello",
+            "hi",
+            "hey",
+            "早上好",
+            "下午好",
+            "晚上好",
+            "谢谢",
+            "多谢",
+            "再见",
+            "拜拜",
+            "你是谁",
+            "你能做什么",
+            "你会什么",
+            "介绍一下你自己",
+        }
 
     def clarification(self, state: State) -> dict[str, Any]:
         message = state.get("plan", {}).get("clarification_question") or "请补充你所指的具体制度、产品或服务名称。"
@@ -116,7 +164,15 @@ class AgentNodes:
     def retrieve(self, state: State) -> dict[str, Any]:
         attempts = state.get("retrieval_attempts", 0) + 1
         try:
-            hits = self.retriever.retrieve(state["rewritten_query"], mode="hybrid_rerank")
+            user_context = state.get("user_context", {})
+            scope = {}
+            if user_context.get("tenant_id"):
+                scope["tenant_id"] = user_context["tenant_id"]
+            if user_context.get("knowledge_base_id"):
+                scope["knowledge_base_id"] = user_context["knowledge_base_id"]
+            hits = self.retriever.retrieve(
+                state["rewritten_query"], mode="hybrid_rerank", **scope
+            )
             documents = [hit.to_dict() for hit in hits]
             return {
                 "retrieval_attempts": attempts,
@@ -124,6 +180,9 @@ class AgentNodes:
                 "documents": documents,
                 "context_docs": [],
                 "last_error": "",
+                "retrieval_metrics": self.retriever.last_trace()
+                if hasattr(self.retriever, "last_trace")
+                else {},
             }
         except Exception as exc:
             logger.exception("Knowledge retrieval failed")
@@ -136,6 +195,7 @@ class AgentNodes:
             }
 
     def rewrite_search(self, state: State) -> dict[str, Any]:
+        started = time.perf_counter()
         try:
             result = self._invoke_structured(
                 SearchRewrite,
@@ -156,6 +216,12 @@ class AgentNodes:
             "documents": [],
             "context_docs": [],
             "last_error": "",
+            "llm_latency_ms": round(
+                state.get("llm_latency_ms", 0.0)
+                + (time.perf_counter() - started) * 1000,
+                3,
+            ),
+            **self._token_usage(),
         }
 
     def build_context(self, state: State) -> dict[str, Any]:
@@ -171,7 +237,11 @@ class AgentNodes:
                 continue
             seen.add(parent_id)
             parent = None
-            if self.parent_store and parent_id:
+            if (
+                self.parent_store
+                and parent_id
+                and getattr(self.settings, "parent_expansion_enabled", True)
+            ):
                 try:
                     parent = self.parent_store.get(parent_id)
                 except (OSError, ValueError, json.JSONDecodeError) as exc:
@@ -251,14 +321,26 @@ class AgentNodes:
                 "grounded": False,
                 "refused": True,
             }
+        started = time.perf_counter()
         response = self.llm.invoke(
             [
                 SystemMessage(content=ANSWER_PROMPT),
                 HumanMessage(content=f"问题：\n{state['question']}\n\n证据：\n{evidence}"),
             ]
         )
+        self._record_usage(response)
         answer = str(response.content).strip()
-        return {"answer": answer, "evidence": evidence, "citations": citations}
+        return {
+            "answer": answer,
+            "evidence": evidence,
+            "citations": citations,
+            "llm_latency_ms": round(
+                state.get("llm_latency_ms", 0.0)
+                + (time.perf_counter() - started) * 1000,
+                3,
+            ),
+            **self._token_usage(),
+        }
 
     def fact_check(self, state: State) -> dict[str, Any]:
         # Tool answers are formatted directly from Pydantic-validated JSON, so
@@ -266,6 +348,7 @@ class AgentNodes:
         if state.get("tool_result"):
             return {"grounded": True, "unsupported_claims": []}
         try:
+            started = time.perf_counter()
             result = self._invoke_structured(
                 FaithfulnessCheck,
                 [
@@ -273,7 +356,16 @@ class AgentNodes:
                     HumanMessage(content=f"证据：\n{state.get('evidence', '')}\n\n回答：\n{state.get('answer', '')}"),
                 ],
             )
-            return {"grounded": result.grounded, "unsupported_claims": result.unsupported_claims}
+            return {
+                "grounded": result.grounded,
+                "unsupported_claims": result.unsupported_claims,
+                "llm_latency_ms": round(
+                    state.get("llm_latency_ms", 0.0)
+                    + (time.perf_counter() - started) * 1000,
+                    3,
+                ),
+                **self._token_usage(),
+            }
         except Exception as exc:
             logger.warning("Fact check failed closed: %s", exc)
             return {"grounded": False, "unsupported_claims": ["事实校验服务未成功完成"]}
@@ -313,11 +405,31 @@ class AgentNodes:
             )
         )
         response = self.llm.invoke([*messages, json_instruction])
+        self._record_usage(response)
         content = str(response.content).strip()
         match = re.search(r"\{.*\}", content, flags=re.DOTALL)
         if not match:
             raise ValueError(f"模型没有返回可解析的 {schema.__name__} JSON")
         return schema.model_validate_json(match.group(0))
+
+    def _record_usage(self, response: Any) -> None:
+        usage = getattr(response, "usage_metadata", None) or {}
+        response_metadata = getattr(response, "response_metadata", None) or {}
+        token_usage = response_metadata.get("token_usage", {})
+        prompt = usage.get("input_tokens", token_usage.get("prompt_tokens", 0))
+        completion = usage.get("output_tokens", token_usage.get("completion_tokens", 0))
+        self._local.prompt_tokens = int(getattr(self._local, "prompt_tokens", 0)) + int(
+            prompt or 0
+        )
+        self._local.completion_tokens = int(
+            getattr(self._local, "completion_tokens", 0)
+        ) + int(completion or 0)
+
+    def _token_usage(self) -> dict[str, int]:
+        return {
+            "prompt_tokens": int(getattr(self._local, "prompt_tokens", 0)),
+            "completion_tokens": int(getattr(self._local, "completion_tokens", 0)),
+        }
 
     @staticmethod
     def _build_evidence(state: State) -> tuple[str, list[dict[str, str]]]:

@@ -43,8 +43,6 @@ def build_settings() -> Settings:
         parsed_dir=RUNTIME_DIR / "parsed",
         parent_store_dir=RUNTIME_DIR / "parents",
         evaluation_dir=RESULTS_DIR,
-        structured_db_path=RUNTIME_DIR / "enterprise.db",
-        business_data_path=ROOT / "data" / "business_api.json",
         dense_top_k=24,
         sparse_top_k=24,
         fusion_top_k=24,

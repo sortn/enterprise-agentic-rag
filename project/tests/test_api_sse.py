@@ -1,38 +1,22 @@
 import pytest
 
-from api.main import _sse_response
-
-
-class FakeRag:
-    def stream(self, question, thread_id):
-        assert question == "测试问题"
-        assert thread_id == "thread-1"
-        yield {"event": "token", "content": "回答"}
-
-
-class FailingRag:
-    def stream(self, question, thread_id):
-        raise RuntimeError("internal service address")
-        yield
+from api.application import _sse_payload_response
 
 
 @pytest.mark.asyncio
-async def test_sse_response_uses_explicit_question():
-    response = _sse_response(FakeRag(), "测试问题", "thread-1")
+async def test_sse_response_contains_start_tokens_and_final_result():
+    response = _sse_payload_response(
+        {
+            "thread_id": "thread-1",
+            "answer": "测试回答",
+            "route": "retrieval",
+        }
+    )
     body = b""
     async for chunk in response.body_iterator:
         body += chunk.encode() if isinstance(chunk, str) else chunk
 
+    assert '"event": "start"'.encode() in body
     assert '"event": "token"'.encode() in body
-    assert "回答".encode() in body
-
-
-@pytest.mark.asyncio
-async def test_sse_error_is_sanitized():
-    response = _sse_response(FailingRag(), "测试问题", "thread-1")
-    body = b""
-    async for chunk in response.body_iterator:
-        body += chunk.encode() if isinstance(chunk, str) else chunk
-
-    assert '"event": "error"'.encode() in body
-    assert b"internal service address" not in body
+    assert '"event": "final"'.encode() in body
+    assert "测试回答".encode() in body

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
 import threading
 from dataclasses import dataclass
@@ -44,10 +45,26 @@ class IngestionPipeline:
         self.chunker = HeadingAwareChunker(self.settings)
         self._lock = threading.Lock()
 
-    def ingest(self, path: str | Path, replace: bool = False) -> IngestionResult:
+    def ingest(
+        self,
+        path: str | Path,
+        replace: bool = False,
+        tenant_id: str = "",
+        knowledge_base_id: str = "",
+        source_name: str = "",
+    ) -> IngestionResult:
         with self._lock:
             document = self.parser.parse(path)
-            existing_documents = self.store.list_documents()
+            if source_name:
+                document.source = Path(source_name).name
+            if tenant_id or knowledge_base_id:
+                scoped_id = hashlib.sha256(
+                    f"{tenant_id}:{knowledge_base_id}:{document.doc_id}".encode("utf-8")
+                ).hexdigest()[:24]
+                document.doc_id = scoped_id
+            existing_documents = self.store.list_documents(
+                tenant_id or None, knowledge_base_id or None
+            )
             existing_ids = {item["doc_id"] for item in existing_documents}
             parents, drafts = self.chunker.split_parent_child(document)
             if document.doc_id in existing_ids and not replace:
@@ -68,6 +85,9 @@ class IngestionPipeline:
                     locator=draft.locator,
                     text=draft.text,
                     dense=vector,
+                    tenant_id=tenant_id,
+                    knowledge_base_id=knowledge_base_id,
+                    document_version=1,
                 )
                 for draft, vector in zip(drafts, vectors, strict=True)
             ]
@@ -82,7 +102,11 @@ class IngestionPipeline:
             if replace and document.doc_id in existing_ids:
                 stale_ids.add(document.doc_id)
             for stale_id in stale_ids:
-                self.store.delete_document(stale_id)
+                self.store.delete_document(
+                    stale_id,
+                    tenant_id or None,
+                    knowledge_base_id or None,
+                )
                 if stale_id != document.doc_id:
                     self.parent_store.delete_document(stale_id)
                     (self.settings.parsed_dir / f"{stale_id}.json").unlink(missing_ok=True)

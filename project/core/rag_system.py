@@ -9,15 +9,15 @@ from typing import Any, Iterator
 from langchain_core.messages import HumanMessage
 
 from config import Settings, get_settings
+from core.observability import Observability
 from db.parent_store_manager import ParentStoreManager
 from ingestion.pipeline import IngestionPipeline
 from rag_agent.graph import create_agent_graph
 from rag_agent.tools import create_enterprise_tools
 from retrieval.hybrid_retriever import HybridRetriever
 from retrieval.milvus_store import MilvusStore
-from services.business_api import MockBusinessService
 from services.model_clients import SiliconFlowEmbeddings, SiliconFlowReranker, build_chat_model
-from services.structured_data import StructuredDataService
+from services.tool_data import EnterpriseToolDataService
 
 
 class RAGSystem:
@@ -29,9 +29,9 @@ class RAGSystem:
         self.retriever: HybridRetriever | None = None
         self.ingestion: IngestionPipeline | None = None
         self.parent_store: ParentStoreManager | None = None
-        self.structured_service: StructuredDataService | None = None
-        self.business_service: MockBusinessService | None = None
+        self.tool_data_service: EnterpriseToolDataService | None = None
         self.agent_graph = None
+        self.observability = Observability(self.settings)
 
     def initialize(self) -> "RAGSystem":
         if self.initialized:
@@ -53,9 +53,8 @@ class RAGSystem:
             )
             document_ids = {item["doc_id"] for item in self.store.list_documents()}
             self.ingestion.backfill_parent_store(document_ids)
-            self.structured_service = StructuredDataService(self.settings)
-            self.business_service = MockBusinessService(self.settings)
-            tools = create_enterprise_tools(self.structured_service, self.business_service)
+            self.tool_data_service = EnterpriseToolDataService(self.settings)
+            tools = create_enterprise_tools(self.tool_data_service)
             self.agent_graph = create_agent_graph(
                 llm=build_chat_model(self.settings),
                 retriever=self.retriever,
@@ -70,15 +69,39 @@ class RAGSystem:
     def new_thread_id() -> str:
         return str(uuid.uuid4())
 
-    @staticmethod
-    def _graph_config(thread_id: str) -> dict[str, Any]:
-        return {"configurable": {"thread_id": thread_id}, "recursion_limit": 20}
+    def _graph_config(
+        self,
+        thread_id: str,
+        user_context: dict[str, object] | None = None,
+    ) -> dict[str, Any]:
+        configurable: dict[str, object] = {"thread_id": thread_id}
+        if user_context:
+            configurable.update(
+                tenant_id=user_context.get("tenant_id", ""),
+                user_id=user_context.get("user_id", ""),
+                role=user_context.get("role", ""),
+                permissions=user_context.get("permissions", []),
+            )
+        config: dict[str, Any] = {"configurable": configurable, "recursion_limit": 20}
+        callbacks = self.observability.graph_callbacks()
+        if callbacks:
+            config["callbacks"] = callbacks
+        return config
 
-    def chat(self, question: str, thread_id: str) -> dict[str, Any]:
+    def chat(
+        self,
+        question: str,
+        thread_id: str,
+        user_context: dict[str, object] | None = None,
+    ) -> dict[str, Any]:
         self.initialize()
         result = self.agent_graph.invoke(
-            {"messages": [HumanMessage(content=question)], "question": question},
-            config=self._graph_config(thread_id),
+            {
+                "messages": [HumanMessage(content=question)],
+                "question": question,
+                "user_context": user_context or {},
+            },
+            config=self._graph_config(thread_id, user_context),
         )
         return {
             "thread_id": thread_id,
@@ -89,14 +112,27 @@ class RAGSystem:
             "grounded": bool(result.get("grounded", False)),
             "refused": bool(result.get("refused", False)),
             "retrieval_attempts": int(result.get("retrieval_attempts", 0)),
+            "retrieval_metrics": result.get("retrieval_metrics", {}),
+            "llm_latency_ms": float(result.get("llm_latency_ms", 0.0)),
+            "prompt_tokens": int(result.get("prompt_tokens", 0)),
+            "completion_tokens": int(result.get("completion_tokens", 0)),
         }
 
-    def stream(self, question: str, thread_id: str) -> Iterator[dict[str, Any]]:
+    def stream(
+        self,
+        question: str,
+        thread_id: str,
+        user_context: dict[str, object] | None = None,
+    ) -> Iterator[dict[str, Any]]:
         self.initialize()
-        config = self._graph_config(thread_id)
+        config = self._graph_config(thread_id, user_context)
         yield {"event": "start", "thread_id": thread_id}
         for update in self.agent_graph.stream(
-            {"messages": [HumanMessage(content=question)], "question": question},
+            {
+                "messages": [HumanMessage(content=question)],
+                "question": question,
+                "user_context": user_context or {},
+            },
             config=config,
             stream_mode="updates",
         ):
@@ -135,9 +171,14 @@ class RAGSystem:
             "retrieval_attempts": int(snapshot.get("retrieval_attempts", 0)),
         }
 
-    def delete_document(self, doc_id: str) -> None:
+    def delete_document(
+        self,
+        doc_id: str,
+        tenant_id: str | None = None,
+        knowledge_base_id: str | None = None,
+    ) -> None:
         self.initialize()
-        self.store.delete_document(doc_id)
+        self.store.delete_document(doc_id, tenant_id, knowledge_base_id)
         self.parent_store.delete_document(doc_id)
         (self.settings.parsed_dir / f"{doc_id}.json").unlink(missing_ok=True)
 

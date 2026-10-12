@@ -22,7 +22,9 @@ def route_after_retrieval(state: State, settings: Settings | None = None) -> str
         top_score = documents[0].get("rerank_score")
         if top_score is None or float(top_score) >= settings.relevance_threshold:
             return "build_context"
-    if state.get("retrieval_attempts", 0) < settings.max_retrieval_attempts:
+    if getattr(settings, "query_rewrite_enabled", True) and state.get(
+        "retrieval_attempts", 0
+    ) < settings.max_retrieval_attempts:
         return "rewrite_search"
     return "refuse"
 
@@ -35,6 +37,8 @@ def route_after_fact_check(state: State, settings: Settings | None = None) -> st
     settings = settings or get_settings()
     if state.get("grounded"):
         return "finish"
-    if state.get("retrieval_attempts", 0) < settings.max_retrieval_attempts:
+    if getattr(settings, "query_rewrite_enabled", True) and state.get(
+        "retrieval_attempts", 0
+    ) < settings.max_retrieval_attempts:
         return "rewrite_search"
     return "refuse"

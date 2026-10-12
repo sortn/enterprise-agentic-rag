@@ -4,13 +4,14 @@ QUERY_PLAN_PROMPT = """你是企业知识库 Agent 的查询规划器。只做�
 - knowledge：公司制度、产品手册、操作说明等文档知识。
 - structured_data：产品价格/质保期，或部门联系人/热线。tool_name 只能是 product 或 department。
 - business_api：实时库存或在线服务状态。tool_name 只能是 inventory 或 service_status。
-- chitchat：问候或与企业知识无关的闲聊。
+- chitchat：仅限明确的问候、感谢、告别或询问助手能力。
 
 规则：
 1. rewritten_query 必须自包含，保留产品型号、数字和专有名词。
 2. identifier 填写型号（如 NX-MEET-PRO）、部门代码（HR/FIN/IT）或服务名。
 3. 只有无法解析“它/那个/上一个”等指代时才 needs_clarification=true。
 4. 不得补造 identifier，不得生成 SQL。
+5. “某个名称是什么/是谁/如何使用”等事实问题，即使名称陌生，也必须按 knowledge 处理，因为它可能来自用户上传的文档。
 """
 
 SEARCH_REWRITE_PROMPT = """初次知识库检索相关性不足。根据原问题和初次查询生成一个更适合检索的替代查询。

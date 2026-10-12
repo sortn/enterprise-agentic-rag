@@ -6,21 +6,19 @@ import json
 
 from langchain_core.tools import StructuredTool
 
-from services.business_api import MockBusinessService
-from services.structured_data import StructuredDataService
+from services.tool_data import EnterpriseToolDataService
 from .schemas import BusinessQueryInput, StructuredQueryInput
 
 
 def create_enterprise_tools(
-    structured_service: StructuredDataService,
-    business_service: MockBusinessService,
+    tool_data_service: EnterpriseToolDataService,
 ) -> dict[str, StructuredTool]:
     def query_structured_data(query_type: str, identifier: str) -> str:
-        result = structured_service.query(query_type=query_type, identifier=identifier)
+        result = tool_data_service.query(query_type=query_type, identifier=identifier)
         return json.dumps(result, ensure_ascii=False)
 
     def call_business_api(resource: str, identifier: str) -> str:
-        result = business_service.lookup(resource=resource, identifier=identifier)
+        result = tool_data_service.lookup(resource=resource, identifier=identifier)
         return json.dumps(result, ensure_ascii=False)
 
     return {

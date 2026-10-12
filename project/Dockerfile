@@ -17,4 +17,4 @@ RUN mkdir -p /app/data
 WORKDIR /app/project
 EXPOSE 8000
 
-CMD ["python", "app.py"]
+CMD ["sh", "-c", "alembic -c alembic.ini upgrade head && python app.py"]

@@ -11,6 +11,7 @@ import gradio as gr
 import httpx
 
 from ui.css import custom_css
+from ui.auth_service import AuthClient, AuthClientError, AuthSession
 
 
 HERO = """
@@ -115,29 +116,171 @@ def _escape_markdown(value: str) -> str:
     return re.sub(r"([\\`*_{}\[\]()#+\-.!|>])", r"\\\1", value)
 
 
+def _document_identity(item: dict) -> tuple[str, str]:
+    """Normalize current API fields while accepting older response payloads."""
+    source = item.get("source_name") or item.get("title") or item.get("source")
+    document_id = item.get("id") or item.get("doc_id")
+    return (
+        _escape_markdown(str(source or "未命名文档")),
+        _escape_markdown(str(document_id or "-")),
+    )
+
+
+def _format_citations(citations: list[dict] | None) -> str:
+    rows: list[str] = []
+    seen: set[tuple[str, str]] = set()
+    for citation in citations or []:
+        source = str(citation.get("source") or "未命名来源").strip()
+        locator = str(citation.get("locator") or "").strip()
+        key = (source, locator)
+        if key in seen:
+            continue
+        seen.add(key)
+        label = f"- **{_escape_markdown(source)}**"
+        if locator:
+            label += f" · {_escape_markdown(locator)}"
+        rows.append(label)
+    return "\n\n**参考来源**\n" + "\n".join(rows) if rows else ""
+
+
 def create_gradio_ui(api_base_url: str):
     timeout = httpx.Timeout(180.0, connect=10.0)
     avatar = Path(__file__).resolve().parents[1] / "assets" / "chatbot_avatar.png"
+    auth_client = AuthClient(api_base_url, timeout)
 
-    def list_documents() -> str:
+    def _user_label(session: AuthSession) -> str:
+        role = "管理员" if session.is_admin else "普通用户"
+        username = _escape_markdown(str(session.user.get("username", "-")))
+        return f"**{username}**　·　{role}"
+
+    def login(username: str, password: str):
         try:
-            response = httpx.get(f"{api_base_url}/api/v1/documents", timeout=timeout)
+            session = auth_client.login(username, password)
+            return (
+                session,
+                session.to_browser_state(),
+                "登录成功，正在进入知识工作台。",
+                gr.update(visible=False),
+                gr.update(visible=True),
+                gr.update(value=_user_label(session), visible=True),
+                gr.update(visible=session.is_admin),
+            )
+        except (AuthClientError, httpx.HTTPError) as exc:
+            return (
+                AuthSession(),
+                {},
+                f"登录失败：{exc}",
+                gr.update(visible=True),
+                gr.update(visible=False),
+                gr.update(visible=False),
+                gr.update(visible=False),
+            )
+
+    def register(username: str, email: str, password: str, confirmation: str):
+        if password != confirmation:
+            return (
+                AuthSession(),
+                {},
+                "注册失败：两次输入的密码不一致。",
+                gr.update(visible=True),
+                gr.update(visible=False),
+                gr.update(visible=False),
+                gr.update(visible=False),
+            )
+        try:
+            session = auth_client.register(username, email, password)
+            return (
+                session,
+                session.to_browser_state(),
+                "注册成功，已自动登录。",
+                gr.update(visible=False),
+                gr.update(visible=True),
+                gr.update(value=_user_label(session), visible=True),
+                gr.update(visible=session.is_admin),
+            )
+        except (AuthClientError, httpx.HTTPError) as exc:
+            return (
+                AuthSession(),
+                {},
+                f"注册失败：{exc}",
+                gr.update(visible=True),
+                gr.update(visible=False),
+                gr.update(visible=False),
+                gr.update(visible=False),
+            )
+
+    def logout(session: AuthSession):
+        session = auth_client.logout(session)
+        return (
+            session,
+            {},
+            "已安全退出登录。",
+            gr.update(visible=True),
+            gr.update(visible=False),
+            gr.update(visible=False),
+            gr.update(visible=False),
+        )
+
+    def restore_login(browser_state):
+        if not browser_state:
+            return (
+                AuthSession(),
+                {},
+                "请输入企业账号。",
+                gr.update(visible=True),
+                gr.update(visible=False),
+                gr.update(visible=False),
+                gr.update(visible=False),
+            )
+        try:
+            session = auth_client.restore(browser_state)
+            return (
+                session,
+                session.to_browser_state(),
+                "登录状态已恢复。",
+                gr.update(visible=False),
+                gr.update(visible=True),
+                gr.update(value=_user_label(session), visible=True),
+                gr.update(visible=session.is_admin),
+            )
+        except (AuthClientError, httpx.HTTPError):
+            return (
+                AuthSession(),
+                {},
+                "登录状态已过期，请重新登录。",
+                gr.update(visible=True),
+                gr.update(visible=False),
+                gr.update(visible=False),
+                gr.update(visible=False),
+            )
+
+    def list_documents(session: AuthSession) -> tuple[str, AuthSession, dict]:
+        try:
+            response = auth_client.request("GET", "/api/v1/documents", session)
             response.raise_for_status()
             documents = response.json().get("documents", [])
             if not documents:
-                return "### 暂无已入库文档\n\n上传文档后，这里会显示文件名与文档 ID。"
+                return (
+                    "### 暂无已入库文档\n\n上传文档后，这里会显示文件名与文档 ID。",
+                    session,
+                    session.to_browser_state(),
+                )
             rows = [f"### 已入库 {len(documents)} 份文档", ""]
             for index, item in enumerate(documents, start=1):
-                source = _escape_markdown(str(item.get("source", "未命名文档")))
-                doc_id = _escape_markdown(str(item.get("doc_id", "-")))
+                source, doc_id = _document_identity(item)
                 rows.append(f"**{index:02d}　{source}**  \n`{doc_id}`")
-            return "\n\n".join(rows)
+            return "\n\n".join(rows), session, session.to_browser_state()
         except Exception as exc:
-            return f"### 知识库暂不可用\n\n`{_escape_markdown(str(exc))}`"
+            return (
+                f"### 知识库暂不可用\n\n`{_escape_markdown(str(exc))}`",
+                session,
+                session.to_browser_state(),
+            )
 
-    def upload(files):
+    def upload(files, session: AuthSession):
         if not files:
-            return "请选择至少一个文档。", list_documents()
+            documents, session, browser_state = list_documents(session)
+            return "请选择至少一个文档。", documents, session, browser_state
         handles = []
         try:
             payload = []
@@ -145,35 +288,43 @@ def create_gradio_ui(api_base_url: str):
                 handle = Path(file_path).open("rb")
                 handles.append(handle)
                 payload.append(("files", (Path(file_path).name, handle)))
-            response = httpx.post(
-                f"{api_base_url}/api/v1/documents",
+            response = auth_client.request(
+                "POST",
+                "/api/v1/documents",
+                session,
                 files=payload,
-                timeout=timeout,
             )
             response.raise_for_status()
             results = response.json().get("results", [])
             lines = ["### 入库完成", ""]
             for item in results:
-                source = _escape_markdown(str(item.get("source", "未命名文档")))
+                source, _ = _document_identity(item)
                 status = _escape_markdown(str(item.get("status", "completed")))
                 chunks = item.get("chunks", 0)
                 lines.append(f"- **{source}** · {status} · `{chunks}` 个子块")
-            return "\n".join(lines), list_documents()
+            documents, session, browser_state = list_documents(session)
+            return "\n".join(lines), documents, session, browser_state
         except Exception as exc:
-            return f"### 上传失败\n\n`{_escape_markdown(str(exc))}`", list_documents()
+            documents, session, browser_state = list_documents(session)
+            return (
+                f"### 上传失败\n\n`{_escape_markdown(str(exc))}`",
+                documents,
+                session,
+                browser_state,
+            )
         finally:
             for handle in handles:
                 handle.close()
 
-    def chat(message, history, thread_id):
+    def chat(message, history, thread_id, session: AuthSession):
         answer = ""
         status = "正在分析问题…"
         try:
-            with httpx.stream(
+            with auth_client.stream(
                 "POST",
-                f"{api_base_url}/api/v1/chat/stream",
+                "/api/v1/chat/stream",
+                session,
                 json={"question": message, "thread_id": thread_id},
-                timeout=timeout,
             ) as response:
                 response.raise_for_status()
                 for line in response.iter_lines():
@@ -189,12 +340,13 @@ def create_gradio_ui(api_base_url: str):
                             "run_tool": "已完成企业工具调用",
                             "fact_check": "正在核对答案与来源证据",
                         }.get(node, status)
-                        yield f"◌　{status}"
+                        yield f"◌　{status}", session, session.to_browser_state()
                     elif event["event"] == "token":
                         answer += event.get("content", "")
-                        yield answer
+                        yield answer, session, session.to_browser_state()
                     elif event["event"] == "final":
                         answer = event.get("answer", answer)
+                        sources = _format_citations(event.get("citations"))
                         grounded = "通过" if event.get("grounded") else "未通过"
                         meta = (
                             "\n\n---\n"
@@ -202,11 +354,15 @@ def create_gradio_ui(api_base_url: str):
                             f"检索 `{event.get('retrieval_attempts', 0)}` 次　·　"
                             f"事实校验 `{grounded}`"
                         )
-                        yield answer + meta
+                        yield answer + sources + meta, session, session.to_browser_state()
                     elif event["event"] == "error":
-                        yield f"请求失败：{event.get('message', '未知错误')}"
+                        yield (
+                            f"请求失败：{event.get('message', '未知错误')}",
+                            session,
+                            session.to_browser_state(),
+                        )
         except Exception as exc:
-            yield f"无法连接后端：{exc}"
+            yield f"无法连接后端：{exc}", session, session.to_browser_state()
 
     with gr.Blocks(
         title="企业知识库 · Agentic RAG",
@@ -215,6 +371,39 @@ def create_gradio_ui(api_base_url: str):
         gr.HTML(HERO)
         gr.HTML(METRICS)
         gr.HTML(CAPABILITIES)
+
+        auth_state = gr.State(lambda: AuthSession())
+        browser_auth_state = gr.BrowserState(
+            default_value={},
+            storage_key="enterprise-rag-auth-session-v1",
+        )
+        with gr.Column(visible=True, elem_id="auth-gateway") as auth_panel:
+            gr.Markdown(
+                "## 企业账号登录\n登录后访问知识问答；管理员可维护知识库文档。",
+                elem_classes="auth-heading",
+            )
+            with gr.Tabs(elem_id="auth-tabs"):
+                with gr.Tab("登录"):
+                    login_username = gr.Textbox(
+                        label="用户名或邮箱",
+                        placeholder="输入用户名或企业邮箱",
+                    )
+                    login_password = gr.Textbox(
+                        label="密码",
+                        type="password",
+                        placeholder="输入密码",
+                    )
+                    login_button = gr.Button("登录", variant="primary")
+                with gr.Tab("注册"):
+                    register_username = gr.Textbox(
+                        label="用户名",
+                        placeholder="3–50 位字母、数字、点、下划线或短横线",
+                    )
+                    register_email = gr.Textbox(label="企业邮箱", placeholder="name@company.com")
+                    register_password = gr.Textbox(label="密码", type="password")
+                    register_confirmation = gr.Textbox(label="确认密码", type="password")
+                    register_button = gr.Button("创建账号", variant="primary")
+            auth_message = gr.Markdown("请输入企业账号。", elem_classes="auth-message")
 
         with gr.Row(elem_classes="workspace-heading"):
             gr.Markdown(
@@ -227,8 +416,11 @@ def create_gradio_ui(api_base_url: str):
             )
 
         thread_id = gr.State(lambda: str(uuid.uuid4()))
-        with gr.Tabs(elem_id="main-tabs"):
+        with gr.Tabs(elem_id="main-tabs", visible=False) as main_tabs:
             with gr.Tab("✦ 智能问答", id="chat"):
+                with gr.Row(elem_classes="user-session-bar"):
+                    user_status = gr.Markdown("", elem_classes="user-identity")
+                    logout_button = gr.Button("退出登录", size="sm", variant="secondary")
                 chatbot = gr.Chatbot(
                     label="企业知识助手",
                     show_label=False,
@@ -244,18 +436,20 @@ def create_gradio_ui(api_base_url: str):
                     elem_id="knowledge-chatbot",
                 )
                 textbox = gr.Textbox(
-                    placeholder="输入关于制度、技术文档或产品手册的问题…",
+                    placeholder="在这里输入问题，按 Enter 发送…",
                     show_label=False,
                     container=False,
                     max_lines=6,
                     submit_btn="发送",
                     stop_btn="停止",
+                    elem_id="question-input",
                 )
                 gr.ChatInterface(
                     fn=chat,
                     chatbot=chatbot,
                     textbox=textbox,
-                    additional_inputs=[thread_id],
+                    additional_inputs=[thread_id, auth_state],
+                    additional_outputs=[auth_state, browser_auth_state],
                     flagging_mode="never",
                     save_history=False,
                 )
@@ -271,9 +465,14 @@ def create_gradio_ui(api_base_url: str):
                     run_on_click=False,
                 )
 
-            with gr.Tab("▣ 知识库管理", id="documents"):
+            with gr.Tab("▣ 知识库管理", id="documents") as documents_tab:
                 with gr.Row(equal_height=True, elem_classes="document-layout"):
-                    with gr.Column(scale=5, min_width=340, elem_classes="panel-card upload-panel"):
+                    with gr.Column(
+                        scale=5,
+                        min_width=340,
+                        visible=False,
+                        elem_classes="panel-card upload-panel",
+                    ) as admin_panel:
                         gr.Markdown(
                             "## 添加企业文档\n支持 PDF、Word、Excel、Markdown 与 TXT，可一次选择多个文件。",
                             elem_classes="panel-heading",
@@ -305,8 +504,53 @@ def create_gradio_ui(api_base_url: str):
                             elem_classes="document-list",
                         )
 
-                upload_button.click(upload, inputs=files, outputs=[upload_status, document_list])
-                refresh_button.click(list_documents, outputs=document_list)
+                upload_button.click(
+                    upload,
+                    inputs=[files, auth_state],
+                    outputs=[upload_status, document_list, auth_state, browser_auth_state],
+                )
+                refresh_button.click(
+                    list_documents,
+                    inputs=auth_state,
+                    outputs=[document_list, auth_state, browser_auth_state],
+                )
+                documents_tab.select(
+                    list_documents,
+                    inputs=auth_state,
+                    outputs=[document_list, auth_state, browser_auth_state],
+                )
+
+        auth_outputs = [
+            auth_state,
+            browser_auth_state,
+            auth_message,
+            auth_panel,
+            main_tabs,
+            user_status,
+            admin_panel,
+        ]
+        login_button.click(
+            login,
+            inputs=[login_username, login_password],
+            outputs=auth_outputs,
+        )
+        login_password.submit(
+            login,
+            inputs=[login_username, login_password],
+            outputs=auth_outputs,
+        )
+        register_button.click(
+            register,
+            inputs=[
+                register_username,
+                register_email,
+                register_password,
+                register_confirmation,
+            ],
+            outputs=auth_outputs,
+        )
+        logout_button.click(logout, inputs=auth_state, outputs=auth_outputs)
+        demo.load(restore_login, inputs=browser_auth_state, outputs=auth_outputs)
 
         gr.HTML(FOOTER)
 

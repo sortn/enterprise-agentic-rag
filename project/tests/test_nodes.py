@@ -102,3 +102,19 @@ def test_plan_policy_preserves_supported_tool_queries_and_real_ambiguity():
 
     assert AgentNodes._enforce_plan_policy("NX-MEET-PRO 的标价是多少？", product) == product
     assert AgentNodes._enforce_plan_policy("该产品的保修期呢？", ambiguous) == ambiguous
+
+
+def test_plan_policy_retrieves_unknown_names_but_preserves_greetings():
+    unknown_name = QueryPlan(
+        intent="chitchat",
+        rewritten_query="iKUN 是什么",
+    )
+    greeting = QueryPlan(
+        intent="chitchat",
+        rewritten_query="你好",
+    )
+
+    fixed = AgentNodes._enforce_plan_policy("iKUN是什么？", unknown_name)
+
+    assert fixed.intent == "knowledge"
+    assert AgentNodes._enforce_plan_policy("你好！", greeting) == greeting

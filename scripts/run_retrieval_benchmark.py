@@ -1,4 +1,4 @@
-"""Run Dense, Hybrid, and Hybrid+Reranker on a linked benchmark split."""
+"""Run BM25, Dense, Hybrid, and Hybrid+Reranker on a linked benchmark split."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ import numpy as np
 from benchmark_common import BENCHMARK_DIR, RESULTS_DIR, build_retrieval_stack, read_jsonl
 
 
-MODES = ("dense", "hybrid", "hybrid_rerank")
+MODES = ("bm25", "dense", "hybrid", "hybrid_rerank")
 METRICS = ("hit_rate", "recall", "mrr", "ndcg", "parent_hit_rate", "parent_recall")
 
 
@@ -123,6 +123,21 @@ def evaluate_question(row: dict, vector: list[float], store, retriever, settings
         "relevant_child_ids": row["relevant_child_ids"],
         "relevant_parent_ids": row["relevant_parent_ids"],
         "modes": {},
+    }
+
+    bm25_started = time.perf_counter()
+    try:
+        bm25_hits = store.search_sparse(row["question"], limit=k)
+        bm25_error = ""
+    except Exception as exc:
+        bm25_hits = []
+        bm25_error = f"{type(exc).__name__}: {exc}"
+    bm25_ms = (time.perf_counter() - bm25_started) * 1000
+    result["modes"]["bm25"] = {
+        **metrics_for(bm25_hits, relevant_children, relevant_parents, k),
+        "latency_ms": round(bm25_ms, 3),
+        "error": bm25_error,
+        "hits": serialize_hits(bm25_hits, k),
     }
 
     dense_started = time.perf_counter()
@@ -272,7 +287,8 @@ def main() -> None:
     completed: dict[str, dict] = {}
     if details_path.is_file():
         for detail in read_jsonl(details_path):
-            completed[detail["question_id"]] = detail
+            if set(MODES).issubset(detail.get("modes", {})):
+                completed[detail["question_id"]] = detail
     started = time.perf_counter()
     with details_path.open("a", encoding="utf-8") as handle:
         for number, (row, vector) in enumerate(zip(rows, vectors, strict=True), start=1):

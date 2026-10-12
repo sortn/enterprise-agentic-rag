@@ -1,5 +1,5 @@
 from retrieval.hybrid_retriever import HybridRetriever
-from retrieval.milvus_store import SearchHit
+from retrieval.milvus_store import MilvusStore, SearchHit
 
 
 class RetrieverSettings:
@@ -61,3 +61,19 @@ def test_embedding_failure_degrades_to_bm25():
 
     assert [item.id for item in results] == ["shared", "sparse"]
     assert all(item.retrieval_method == "bm25_degraded" for item in results)
+
+
+def test_milvus_scope_filter_requires_v2_schema_and_binds_tenant_and_kb():
+    store = object.__new__(MilvusStore)
+    store._supports_scope = True
+    expression = store._scope_filter("tenant-1", "kb-1")
+    assert 'tenant_id == "tenant-1"' in expression
+    assert 'knowledge_base_id == "kb-1"' in expression
+
+    store._supports_scope = False
+    try:
+        store._scope_filter("tenant-1", "kb-1")
+    except RuntimeError as exc:
+        assert "legacy unscoped schema" in str(exc)
+    else:
+        raise AssertionError("legacy unscoped collections must fail closed")

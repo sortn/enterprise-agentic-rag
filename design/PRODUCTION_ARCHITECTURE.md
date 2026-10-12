@@ -1147,7 +1147,7 @@ project/
 | `InMemorySaver` | 替换 | PostgreSQL Checkpointer，支持恢复和多实例 |
 | `rag_agent/tools.py` | 重构 | Tool Registry + Policy + Audit + Idempotency/HITL |
 | `api/main.py` | 拆分路由 | 管理、任务、问答、健康、审计分别维护 |
-| `ui/gradio_app.py` | 保留演示定位 | 不承担生产权限与核心业务逻辑 |
+| `ui/dashboard.py` | 保留演示与本地管理定位 | 不承担生产权限与核心业务逻辑 |
 | `scripts/evaluate_retrieval.py` | 扩展 | 版本化数据集、生成质量、安全和性能评测 |
 
 ## 20. 分阶段实施与验收
@@ -1226,7 +1226,7 @@ project/
 | 工程化部署 | Compose/Kubernetes 配置、健康检查、恢复文档 |
 | 工业化入库 | 幂等、版本发布、补偿、任务队列和一致性测试 |
 
-当前实现没有使用 PostgreSQL、Redis 和 Celery。只有对应实现与测试完成后，才能将它们列入已交付技术栈；设计文档本身不能作为实现证据。
+当前应用已使用 PostgreSQL 保存身份、知识库、文档版本、对话、Agent Run、Usage 和审计数据，并使用 Redis 管理 Refresh Token、短期对话与检索缓存。异步入库 Worker、Celery、对象存储业务 Bucket、PostgreSQL LangGraph Checkpointer 和补偿式发布仍属于后续阶段；设计文档本身不作为实现证据。
 
 ## 22. 关键架构决策摘要
 

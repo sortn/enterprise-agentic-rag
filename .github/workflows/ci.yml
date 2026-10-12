@@ -13,6 +13,23 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: enterprise_rag
+          POSTGRES_USER: enterprise_rag
+          POSTGRES_PASSWORD: enterprise_rag
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U enterprise_rag -d enterprise_rag"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 15
+    env:
+      DATABASE_URL: postgresql+asyncpg://enterprise_rag:enterprise_rag@127.0.0.1:5432/enterprise_rag
+      TEST_DATABASE_URL: postgresql+asyncpg://enterprise_rag:enterprise_rag@127.0.0.1:5432/enterprise_rag
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -29,6 +46,9 @@ jobs:
 
       - name: Run unit tests
         run: python -m pytest project/tests -q
+
+      - name: Verify Alembic migration from an empty database
+        run: alembic -c project/alembic.ini upgrade head
 
       - name: Validate Docker Compose
         run: docker compose config --quiet
