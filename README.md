@@ -191,6 +191,8 @@ docker compose up -d --build
 
 应用容器会先执行 Alembic 迁移，再和 PostgreSQL、Milvus、etcd、MinIO、Redis 一起启动。业务数据库、RSA 密钥和 Redis 数据分别持久化到 Compose Volume 与本地运行目录。
 
+默认访问地址为 `http://127.0.0.1:8001`。如需使用其他宿主机端口，可在启动前设置 `APP_PORT`；容器内部仍固定使用 8000。
+
 > Compose 默认将管理端口绑定到本机回环地址。公网部署时应在入口层启用 HTTPS，并通过密钥挂载或密钥管理服务提供 RSA 私钥。
 
 ## API 示例

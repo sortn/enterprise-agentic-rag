@@ -104,7 +104,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-enterprise_rag}:${POSTGRES_PASSWORD:-enterprise_rag}@postgres:5432/${POSTGRES_DB:-enterprise_rag}
       API_BASE_URL: http://127.0.0.1:8000
     ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:${APP_PORT:-8001}:8000"
     volumes:
       - ./data:/app/data
       - ./evaluation:/app/evaluation
